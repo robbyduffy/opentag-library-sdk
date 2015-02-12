@@ -43,7 +43,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-qubit.VERSION = "1.1.4";
+qubit.VERSION = "1.1.5";
 
 try {
   module.exports = PKG_ROOT;
@@ -4597,6 +4597,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
       this.log.INFO("executed without errors.");
     } catch (ex) {
       this.addState("EXECUTED_WITH_ERRORS");
+      this.executedWithErrors = new Date().valueOf();
       this.log.ERROR("Error while executing: " + ex);
       this.log.ERROR("There was an error while executing instance of tag: " +
               this.CLASS_NAME + " from package: " + this.PACKAGE_NAME);//L
@@ -4650,13 +4651,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @param {Boolean} noErrors if error occured is passed.
    */
   GenericLoader.prototype._onExecute = function (noErrors) {
-    try {
-      this.onExecute(noErrors);
-    } finally {
-      if (noErrors) {
-        this.events.call("success");
-      }
-    }
+    this.onExecute(noErrors);
   };
   /**
    * @event
@@ -5061,9 +5056,22 @@ q.html.HtmlInjector.getAttributes = function (node) {
       if (this.cancelled) {
         this._handleCancel();
         return false;
-      } else if (!this.afterRun) {
-        this.afterRun =  new Date().valueOf();
-        this.after(this.scriptExecuted > 0);
+      } else {
+        var successful = this.scriptExecuted > 0;
+        try {
+          if (!this.afterRun) {
+            this.afterRun =  new Date().valueOf();
+            this.after(successful);
+          }
+        } catch (ex) {
+          this.executedWithErrors = new Date().valueOf();
+        }
+        if (!this.executedWithErrors) {
+          //this event will cause other awaiting dependencies to run
+          if (successful) {
+            this.events.call("success");
+          }
+        }
       }
       this._flushDocWrites();
       this._markFinished();
