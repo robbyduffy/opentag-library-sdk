@@ -1,3 +1,5 @@
+(function () {
+
 /**
  * @author Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -22,14 +24,30 @@
   };
 }());
 
-var global = this;
+
+//PKG_ROOT is the default packaging root.
+var PKG_ROOT = {__anonymous__: true};
+var GLOBAL = null;
+//remove this block to hide implementation
 try {
-  global = (false || eval)("this") || (function () {return this; }()) || window;
+  GLOBAL = (false || eval)("this") || (function () { return this; }());
 } catch (e) {}
 
-global.NAMESPACE = global;
+//direct reference, is referred everywhere
+//GLOBAL will ALWAYS refer to shared global scope, either in node or browser
+//however, entire classpath can be hidden, if necessary
+PKG_ROOT = GLOBAL; //$anonymous or not
 
-global.qubit = global.qubit || {};
+var qubit = PKG_ROOT.qubit || {};
+if (!PKG_ROOT.qubit) {
+  PKG_ROOT.qubit = qubit;
+}
+
+qubit.VERSION = "1.1.4";
+
+try {
+  module.exports = PKG_ROOT;
+} catch (e) {}
 
 //shortcuts
 var EMPTY_FUN = function () {};
@@ -46,7 +64,7 @@ var UNDEF;
 (function () {
   
   /**
-   * @class qubit.opentag.Utils
+   * @class qubit.Define
    * @singleton
    * 
    * #Generic Utility
@@ -56,37 +74,60 @@ var UNDEF;
    * many more useful utilities. Please see the API.
    * 
    */
-  function Utils() {}
-
-  var global = null;
-  try {
-    global = (false || eval)("this") || (function () { return this; }());
-  } catch (e) {}
+  function Define() {}
   
   /**
    * Global scope accessor.
    * @returns {Object}
    */
-  Utils.global = function () {
-    return global;
+  Define.global = function () {
+    return GLOBAL;
   };
 
   /**
-   * Function builds desired name space.
+   * Function builds desired name space in global scope.
    * It will not override existing elements.
+   * Global option does not apply if pckg is specified.
    * @param {String} path
    * @param {Object} instance
    * @param {Object} pckg
    * @param {Boolean} noOverride
    * @returns {Object}
    */
-  Utils.namespace = function (path, instance, pckg, noOverride) {
+  Define.globalNamespace = function (path, instance, pckg, noOverride) {
+    return _namespace(path, instance, pckg, noOverride, true);
+  };
+  
+  /**
+   * Function builds desired name space in defalt PKG_ROOT scope.
+   * It will not override existing elements.
+   * @param {String} path dot notation based objects path.
+   * @param {Object} instance reference to be put as last `object` node. If `undefined` 
+   *                  empty object will be used
+   * @param {Object} pckg object to start namespace at
+   * @param {Boolean} noOverride if set, "instance" parameter will not override
+   *    if object already exists in namespace. Can be ignored if 
+   *    `GLOBAL.TAGSDK_NS_OVERRIDE` is set to true (no overriding mode)
+   * @returns {Object} `{root, object}` pair where namespace starts at "root" 
+   *        and ends at "object". "object" is the top element namespace created.
+   */
+  Define.namespace = function (path, instance, pckg, noOverride) {
+    return _namespace(path, instance, pckg, noOverride, false);
+  };
+  
+  function _namespace(path, instance, pckg, noOverride, isGlobal) {
     var files = path.split("."),
       //access eval INDIRECT so it is called globally
-      current = Utils.NAMESPACE_BASE || (function () {return eval("this"); }()),
+      current = Define.NAMESPACE_BASE || PKG_ROOT,
       last = null,
       lastName = null,
       i;
+    
+    if (isGlobal) {
+      current = GLOBAL;
+    }
+    
+    var root = current;
     
     current = pckg || current;
     
@@ -100,8 +141,8 @@ var UNDEF;
     last = current;
     lastName = files[files.length - 1];
     
-    if (global.TAGSDK_NS_OVERRIDE) {
-       noOverride = false;
+    if (GLOBAL.TAGSDK_NS_OVERRIDE) {
+      noOverride = false;
     }
     
     if (instance !== undefined) {
@@ -112,8 +153,11 @@ var UNDEF;
       last[lastName] = last[lastName] || {};
     }
     
-    return last[lastName];
-  };
+    return {
+      root: root,
+      object: last
+    };
+  }
 
   /**
    * Utility for simple class declaration (not definition).
@@ -128,22 +172,95 @@ var UNDEF;
    * @param {Object} config
    * @returns {Object} the class instance
    */
-  Utils.clazz = function (path, instance, extendingClass, pckg, config) {
-    Utils.namespace(path, instance, pckg, true);
+  Define.clazz = function (path, instance, extendingClass, pckg, config) {
+    Define.namespace(path, instance, pckg, true);
     if (typeof(extendingClass) === "function") {
       instance.superclass = extendingClass;
       instance.prototype = new instance.superclass(config);
     }
+    var names = path.split(".");
     if (instance.prototype) {
-      var names = path.split(".");
       instance.prototype.CLASS_NAME = names[names.length - 1];
       names.splice(names.length - 1, 1);
       instance.prototype.PACKAGE_NAME = names.join(".");
+    } else {
+      instance.STATIC_NAME = names[names.length - 1];
+      names.splice(names.length - 1, 1);
+      instance.PACKAGE_NAME = names.join(".");
     }
     return instance;
   };
 
-  Utils.clazz("qubit.opentag.Utils", Utils);
+  Define.clazz("qubit.Define", Define);
+  
+}());
+
+
+/*
+ * TagSDK, a tag development platform
+ * Copyright 2013-2014, Qubit Group
+ * http://opentag.qubitproducts.com
+ * Author: Peter Fronc <peter.fronc@qubitdigital.com>
+ */
+
+(function () {
+  
+  var Define = qubit.Define;
+  
+  /**
+   * @class qubit.opentag.Utils
+   * @singleton
+   * 
+   * #Generic Utility
+   * 
+   * It delivers utility tools for copying or traversing objects, acessing
+   * and manipulating CSS class names, managing arrays, creating classes and
+   * many more useful utilities. Please see the API.
+   * 
+   */
+  function Utils() {}
+  
+  var global = Define.global();
+  
+  Define.clazz("qubit.opentag.Utils", Utils);
+  
+  /**
+   * @deprecated see Define class.
+   * 
+   * Global scope accessor.
+   * @returns {Object}
+   */
+  Utils.global = Define.global;
+  
+  /**
+   * @deprecated see Define class.
+   * 
+   * Function builds desired name space.
+   * It will not override existing elements.
+   * @param {String} path
+   * @param {Object} instance
+   * @param {Object} pckg
+   * @param {Boolean} noOverride
+   * @returns {Object}
+   */
+  Utils.namespace = Define.namespace;
+  
+  /**
+   * @deprecated see Define class.
+   * 
+   * Utility for simple class declaration (not definition).
+   * It does similiar job as namespace with addition of adding CLASS_NAME
+   * and PACKAGE_NAME on prototype. It also sets superclass to extending class
+   * instance.
+   * 
+   * @param {String} path
+   * @param {Object} instance
+   * @param {Function} extendingClass
+   * @param {Object} pckg
+   * @param {Object} config
+   * @returns {Object} the class instance
+   */
+  Utils.clazz = Define.clazz;
   
   /**
    * Function resolving string with classpath to object addressed.
@@ -169,7 +286,7 @@ var UNDEF;
    * @returns {Boolean}
    */
   Utils.variableExists = function (value) {
-    return (value !== undefined) && (value !== null) && (value !== "");
+    return (value !== undefined) && (value !== null);
   };
 
 
@@ -248,11 +365,14 @@ var UNDEF;
    * @param {Object} obj
    * @returns {Number}
    */
-  function addAnonymousAcessor (obj) {
+  function addAnonymousAcessor(obj) {
     return Utils.addToArrayIfNotExist(Utils.ANON_VARS, obj);
-  };
+  }
 
   // GENERIC
+  function escapeRegExp(string) {
+    return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+  }
   
   /**
    * Function replacing all matching instances of regex "patterns" in "string" 
@@ -266,7 +386,7 @@ var UNDEF;
    * @returns {String} results
    */
   Utils.replaceAll = function (string, pattern, replace) {
-    return string.replace(new RegExp(pattern, 'g'), replace);
+    return string.replace(new RegExp(escapeRegExp(pattern), 'g'), replace);
   };
   
   /**
@@ -280,8 +400,8 @@ var UNDEF;
     if (typeof (string) !== "string") {
       string += "";
     }
-    string = Utils.replaceAll(string, "<", "&lt;");
-    string = Utils.replaceAll(string, ">", "&gt;");
+    string = string.replace(/</g, "&lt;");
+    string = string.replace(/>/g, "&gt;");
     return string;
   };
 
@@ -380,7 +500,7 @@ var UNDEF;
    */
   Utils.objectCopy = function (obj, cfg) {
     cfg = cfg || {};
-    var res = _objectCopy (obj, cfg, cfg.maxDeep);
+    var res = _objectCopy(obj, cfg, cfg.maxDeep);
     travelArray = [];
     return res;
   };
@@ -391,13 +511,15 @@ var UNDEF;
       noFunctions = false,
       win = false,
       all = false,
-      copyReference = false;
+      copyReference = false,
+      emptyForMaxDeep = false;
     
     if (cfg) {
       all = !!cfg.all;
       nodes = all || cfg.nodes;
       win = all || cfg.win;
       noOwn = all;
+      emptyForMaxDeep = !!cfg.emptyForMaxDeep;
       noFunctions = cfg.noFunctions && !all;
       
       if (cfg.noOwn !== undefined) {
@@ -417,7 +539,10 @@ var UNDEF;
     }
     
     if (maxDeep !== undefined && !maxDeep) {
-      return;
+      if (emptyForMaxDeep) {
+        return;
+      }
+      return obj;
     } else if (maxDeep !== undefined) {
       maxDeep--;
     }
@@ -442,7 +567,7 @@ var UNDEF;
     }
     
     if (!win) {
-      if (obj === window || obj === global) {
+      if (obj === global) {
         return obj;
       }
     }
@@ -454,14 +579,14 @@ var UNDEF;
     }
 
     if (!noFunctions && obj instanceof Function) {
-      var funStr = String(obj).replace(/\s+/g,"");
+      var funStr = String(obj).replace(/\s+/g, "");
       if ((funStr.indexOf("{[nativecode]}") + 14) === funStr.length) {
         //native case
-        copy = function() {
+        copy = function () {
           return obj.apply(parentObj || this, arguments);
         };
       } else {
-        copy = function() {
+        copy = function () {
           return obj.apply(this, arguments);
         };
       }
@@ -529,7 +654,7 @@ var UNDEF;
    * 
    * Execution function `exe` will be called on each object's property:
    * 
-         exe(obj, parent, propName, trackPath)
+   exe(obj, parent, propName, trackPath)
    * 
    * Where obj is the objects propery reference, parent is the parent object 
    * reference, propName is the property name and trackPath is a fully qualified
@@ -548,27 +673,27 @@ var UNDEF;
    *    
    * - `nodes` if DOM nodes should be included in traverse (default false)
    */
-   Utils.traverse = function (obj, exe, cfg) {
-     _traverse(obj, exe, cfg);
-   };
-   
-   function _traverse(obj, exe, cfg, start, parent, prop, trackPath) {
+  Utils.traverse = function (obj, exe, cfg) {
+    _traverse(obj, exe, cfg);
+  };
+
+  function _traverse(obj, exe, cfg, start, parent, prop, trackPath) {
     cfg = cfg || {};
-    
+
     if (cfg.hasOwn === undefined) {
       cfg.hasOwn = true;
     }
-    
+
     if (cfg.objectsOnly && !(obj instanceof Object)) {
       return;
     }
-    
+
     if (cfg.maxDeep !== undefined && !cfg.maxDeep) {
       return;
     } else if (cfg.maxDeep !== undefined) {
       cfg.maxDeep--;
     }
-    
+
     if (!cfg || !cfg.nodes) {
       try {
         if (obj instanceof Node) {
@@ -581,7 +706,7 @@ var UNDEF;
         }
       }
     }
-    if (obj === window || obj === global) {
+    if (obj === global) {
       //dont follow those objects
       return;
     }
@@ -590,25 +715,25 @@ var UNDEF;
       traverseArray = [];
       start = 0;
     }
-    
+
     if (existsInTraversePath(obj, start)) {
       return;
     }
 
     traverseArray[start] = obj;
     parent = parent || obj;
-    
+
     if (parent && prop && (parent[prop] !== parent[prop])) {
       //live getters will be ommited
       return;
     }
-    
+
     var stopHere = exe(obj, parent, prop, trackPath);
-    
+
     if (stopHere) {
       return;
     }
-    
+
     var i = 0;
     var objPath = "";
     for (var pprop in obj) {
@@ -619,11 +744,12 @@ var UNDEF;
             objPath = trackPath ? (trackPath + "." + pprop) : pprop;
           }
           _traverse(object, exe, cfg, start + 1, parent, pprop, objPath);
-        } catch (e) {}
+        } catch (e) {
+        }
       }
       i++;
     }
-  };
+  }
 
   /**
    * Prepares string to be quoted and evaluable.
@@ -661,44 +787,49 @@ var UNDEF;
    *     will be used to create constructor - optional. 
    * @param {String} classPath classpath to be used and set at
    * @param {Function} extendingClass class to inherit from
+   * @param {Object} pckg namespace package to be put at
    * @returns {Object} defined class reference
    */
-  Utils.defineClass = function (classPath, extendingClass, config) {
+  Utils.defineClass = function (classPath, extendingClass, config, pckg) {
     
     var names = classPath.split(".");
     var className = names[names.length - 1];
     
     //create class
-    //@TODO create eval fix and do proper wrap.
     var clazz;
-    var funTemplate = "(function " + className + "() {" +
-      "  if (" + classPath + "._CONSTRUCTOR) {" +
-      "    return " + classPath + "._CONSTRUCTOR.apply(this, arguments);" +
-      "  } else {" +
-      "    if (" + classPath + ".superclass) {" +
-      "      return " + classPath + ".superclass.apply(this, arguments);" +
-      "    }" + 
-      "  }" +
-      "})";
     
-    clazz = Utils.gevalAndReturn(funTemplate).result;
-
-//or anonymous:
-//    var clazz = function () {
-//      if (CONSTR) {
-//         CONSTR.apply(this, arguments);
+    //@todo arguably, anonymous looks better, but still, its good to have 
+    //the name present
+    var funTemplate = ["clazz = ",
+            "(function ", className, "() {",
+      "  if (", classPath, "._CONSTRUCTOR) {",
+      "    return ", classPath, "._CONSTRUCTOR.apply(this, arguments);",
+      "  } else {",
+      "    if (", classPath, ".superclass) {",
+      "      return ", classPath, ".superclass.apply(this, arguments);",
+      "    }",
+      "  }",
+      "})"
+      ].join("");
+    //evaluate locally (qubit )!
+    eval(funTemplate);
+    
+    var CONSTRUCTOR = config.CONSTRUCTOR;
+    
+//    //or anonymous:
+//    clazz = function () {
+//      if (clazz._CONSTRUCTOR) {
+//        return clazz._CONSTRUCTOR.apply(this, arguments);
 //      } else if (clazz.superclass) {
-//        clazz.superclass.apply(this, arguments);
+//        return clazz.superclass.apply(this, arguments);
 //      }
 //    };
-
-    var CONSTRUCTOR = config.CONSTRUCTOR;
     
     clazz._CONSTRUCTOR = CONSTRUCTOR;
     clazz.superclass = extendingClass;
     
     //publish class
-    Utils.clazz(classPath, clazz, extendingClass);
+    Define.clazz(classPath, clazz, extendingClass, pckg);
     
     //pass prototype objects
     for (var prop in config) {
@@ -805,12 +936,14 @@ var UNDEF;
    * @param {Object} obj
    */
   Utils.removeFromArray = function (array, obj) {
-    var i = 0;
+    var i = 0, total = 0;
     for (; i < array.length; i += 1) {
       if (array[i] === obj) {
         array.splice(i, 1);
+        total++;
       }
     }
+    return total;
   };
   
   /**
@@ -857,23 +990,34 @@ var UNDEF;
     }
   };
   
+  var prefix = "try{this.qubitopentagutilsgevalandreturn__var_test__=(";
+  var suffix = ");}catch(ex){" +
+      "this.qubitopentagutilsgevalandreturn__var_test__error = ex;}";
   /**
    * Evaluates expression and returns value of wrapped by "(" expression ")".
    * @param {String} expression
    * @returns {Object}
    */
   Utils.gevalAndReturn = function (expression) {
-    Utils.gevalAndReturn.___var_test___ = undefined;
-    Utils.gevalAndReturn.___var_test___error = undefined;
-    expression  =
-            "try{qubit.opentag.Utils.gevalAndReturn.___var_test___=(" +
-            expression +
-            ");}catch(ex){" +
-            "qubit.opentag.Utils.gevalAndReturn.___var_test___error = ex;" +
-            "}";
+    var G = GLOBAL;
+    G.qubitopentagutilsgevalandreturn__var_test__ = undefined;
+    G.qubitopentagutilsgevalandreturn__var_test__error = undefined;
+    
+    expression  = prefix + expression + suffix;
+
+    //must be geval
     Utils.geval(expression);
-    var res = Utils.gevalAndReturn.___var_test___;
-    var err = Utils.gevalAndReturn.___var_test___error;
+
+    var res = G.qubitopentagutilsgevalandreturn__var_test__;
+    var err = G.qubitopentagutilsgevalandreturn__var_test__error;
+    
+    try {
+      G.qubitopentagutilsgevalandreturn__var_test__ = UNDEF;
+      G.qubitopentagutilsgevalandreturn__var_test__error = UNDEF;
+      delete G.qubitopentagutilsgevalandreturn__var_test__;
+      delete G.qubitopentagutilsgevalandreturn__var_test__error;
+    } catch (ex) {/*IE magic*/}
+    
     return {
       result: res,
       error: err
@@ -916,9 +1060,9 @@ var UNDEF;
    */
   Utils.geval = function (expression) {
     if (window && window.execScript) {
-      window.execScript(expression);
+      return window.execScript(expression);
     } else {
-      (function () {return global["eval"].call(global, expression); }());
+      return (function () {return global["eval"].call(global, expression); }());
     }
   };
   
@@ -934,7 +1078,7 @@ var UNDEF;
    * @param {Function} callback
    * @returns {Boolean} true and only true if body and state is complete is available.
    */
-  Utils.bodyReady = function(callback) {
+  Utils.bodyReady = function (callback) {
     if (_loaded) {
       if (callback) {
         callback();
@@ -981,7 +1125,7 @@ var UNDEF;
 /* jshint white: false */
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -989,8 +1133,8 @@ var UNDEF;
 
 (function () {
   
-  var Utils = qubit.opentag.Utils;
-  var c = null;
+  var Define = qubit.Define;
+  var _console = null;
   
   /**
    * @class qubit.opentag.Log
@@ -1007,7 +1151,7 @@ var UNDEF;
    */
   function Log(prefix, clazz, collectLocally) {
     
-    this.collectLogs = !!Log.COLLECT;
+    this.collectLogs = !!Log.isCollecting();
     this.collectLocally = collectLocally;
     /**
      * Collection of logging inputs:
@@ -1037,7 +1181,7 @@ var UNDEF;
     };
   }
 
-  Utils.clazz("qubit.opentag.Log", Log);
+  Define.clazz("qubit.opentag.Log", Log);
 
   /**
    * Static property used to define finest level.
@@ -1085,21 +1229,52 @@ var UNDEF;
    */
   Log.prototype.MAX_LOG_LEN = -1;
   
+  var LEVEL = Log.LEVEL_NONE;
+  LEVEL = Log.LEVEL_INFO;/*D*///line deleted during merge
+  var COLLECT_LEVEL = Log.LEVEL_FINE;
+  var COLLECT = true;
+  
   /**
-   * @property LEVEL
+   * Global setter to indicate if logs should be collected (memorised).
+   * Memorised logs can be print again with rePrint methods on logger instances
+   * or directly on global `Log.rePrintAll()` method.
+   * @param {Boolean} isCollecting if logs should be collected. Takes effect 
+   *  immediately.
+   */
+  Log.setCollecting = function (isCollecting) {
+    COLLECT = !!isCollecting;
+  };
+  
+  /**
+   * Getter that returns true if system is collecting logs.
+   * @returns {Boolean} true only if system is collecting logs.
+   */
+  Log.isCollecting = function () {
+    return COLLECT || Log.COLLECT;
+  };
+  
+  /**
+   * Global logger level setter.
+   * @param {Number} level one of qubit.opentag.Log.LEVEL_* properties
+   */
+  Log.setLevel = function (level) {
+    LEVEL = +level;
+  };
+  
+  /**
    * 
-   * `Log.LEVEL` property is used to controll globally current and default loggin
-   * level.
+   * `Log.getLevel()` getter/setter is used to controll globally current and 
+   * default logging levels.
    * Choose from Log.LEVEL_* properties to adjust system logging output.
    * 
    * Example:
     
-         qubit.opentag.Log.LEVEL = qubit.opentag.Log.LEVEL_FINEST;
+         qubit.opentag.Log.setLevel(qubit.opentag.Log.LEVEL_FINEST);
 
    *  will enable all logs to 
    * be at output.
    
-         qubit.opentag.Log.LEVEL = qubit.opentag.Log.LEVEL_NONE;
+         qubit.opentag.Log.setLevel(qubit.opentag.Log.LEVEL_NONE);
   
    * will disable any logs.
    * 
@@ -1111,12 +1286,33 @@ var UNDEF;
         Log.LEVEL_WARN = 1;
         Log.LEVEL_ERROR = 0;
         Log.LEVEL_NONE = -1;
-  
+    
+    
+   * @returns {Number} current level, one of qubit.opentag.Log.LEVEL_* 
+   *   properties
    */
-  Log.LEVEL = Log.LEVEL_NONE;
-  Log.LEVEL = Log.LEVEL_INFO;/*D*///line deleted during merge
-  Log.COLLECT_LEVEL = Log.LEVEL_FINE;
-  Log.COLLECT = true;
+  Log.getLevel = function () {
+    return LEVEL;
+  };
+  
+  /**
+   * Collection level setter. One of qubit.opentag.Log.LEVEL_*.
+   * Collection level indicates which level should be used to memorise logs 
+   * so they can be printed again. See `rePrintAll()` for more details.
+   * @param {Number} level one of qubit.opentag.Log.LEVEL_* properties
+   */
+  Log.setCollectLevel = function (level) {
+    COLLECT_LEVEL =  +level;
+  };
+  
+  /**
+   * Same as `gelLevel` but the level is set agains logs collected to be 
+   * memorised for later use. See `rePrintAll()` for more details.
+   * @returns {Number} level one of qubit.opentag.Log.LEVEL_* properties
+   */
+  Log.getCollectLevel = function () {
+    return COLLECT_LEVEL;
+  };
   
   var collection = [];
   
@@ -1138,19 +1334,22 @@ var UNDEF;
    * as plain logging in console.
    * @param {Number} level logging LEVEL value to use
    * @param {Number} delay delay each message by delay ms value
+   * @param {Boolean} noclean if console should not be cleared
+   * @param {Array} array alternative array of logs to be reprinted, normally
+   *   you dont need to use it unless you implement custom logs history.
    */
   Log.rePrintAll = function (level, delay, noClean, array) {
-    var oldLevel = Log.LEVEL;
+    var oldLevel = LEVEL;
     
     if (level !== undefined) {
-      Log.LEVEL = level;
+      LEVEL = level;
     }
     
     try {
-      if (Log.COLLECT) {
+      if (Log.isCollecting()) {
         try {
           if (!noClean) {
-            c.clear();
+            _console.clear();
           }
         } catch (ex) {
           
@@ -1161,19 +1360,19 @@ var UNDEF;
           (function (j) {
             var log = collection[j];
             var logLevel = log[3];
-            if (logLevel !== undefined && Log.LEVEL >= logLevel) {
+            if (logLevel !== undefined && LEVEL >= logLevel) {
               counter++;
               if (!delay) {
                 Log.print.apply(Log, log);
               } else {
                 qubit.opentag.Timed.setTimeout(function () {
                   if (level !== undefined) {
-                    Log.LEVEL = level;
+                    LEVEL = level;
                   }
                   try {
                     Log.print.apply(Log, log);
                   } finally {
-                    Log.LEVEL = oldLevel;
+                    LEVEL = oldLevel;
                   }
                 }, counter * delay);
               }
@@ -1184,11 +1383,11 @@ var UNDEF;
     } catch (ex) {
       //for sanity
     } finally {
-      Log.LEVEL = oldLevel;
+      LEVEL = oldLevel;
     }
   };
   
-  var _ssupported = !!Utils.global().webkitURL;
+  var _ssupported = !!Define.global().webkitURL;
   /**
    * Use styling by default.
    * @returns {Boolean}
@@ -1197,9 +1396,8 @@ var UNDEF;
     return _ssupported;
   };
   
-  var altConsole = {
-    
-  };
+  //dummy for now
+  var altConsole = {};
   /**
    * 
    * Attach console object to controll logging print method.
@@ -1207,8 +1405,8 @@ var UNDEF;
    * @returns {Object} console attached
    */
   Log.setConsole = function (xconsole) {
-    xconsole = xconsole || altConsole;
-    return c = xconsole;
+    _console = xconsole || altConsole;
+    return _console;
   };
   
   /**
@@ -1245,14 +1443,14 @@ var UNDEF;
       }
       try { //try delayed option, if package exists
         qubit.opentag.Timed.setTimeout(function () {
-            this.print(message, style, type, level);
+          this.print(message, style, type, level);
         }.bind(this), delay);
       } catch (e) {
         setTimeout(function () {
           this.print(message, style, type, level);
         }.bind(this), delay);
       }
-      _last_run  = new Date().valueOf() + delay;
+      _last_run = new Date().valueOf() + delay;
     } else {
       this.print(message, style, type, level);
     }
@@ -1279,22 +1477,22 @@ var UNDEF;
    */
   Log.print = function (message, style, type, level) {
     //pre-eliminary step
-    if (level !== undefined && Log.LEVEL < level) {
+    if (level !== undefined && LEVEL < level) {
       return;
     }
     try {
-      if (c && c.log) {
+      if (_console && _console.log) {
         if (style && Log.isStyleSupported()){
-          if (type && c[type]) {
-            c[type]("%c" + message, style);
+          if (type && _console[type]) {
+            _console[type]("%c" + message, style);
           } else {
-            c.log("%c" + message, style);
+            _console.log("%c" + message, style);
           }
         } else {
-          if (type && c[type]) {
-            c[type](message);
+          if (type && _console[type]) {
+            _console[type](message);
           } else {
-            c.log(message);
+            _console.log(message);
           }
         }
       }
@@ -1313,12 +1511,12 @@ var UNDEF;
    */
   Log.prototype.collect = function (toPrint, level) {
     if (level === undefined) {
-      level = Log.COLLECT_LEVEL;
+      level = Log.getCollectLevel();
     }
     
     var collected = false;
-    var collectingGlobally = 
-            (this.collectLogs && Log.COLLECT && Log.COLLECT_LEVEL >= +level);
+    var collectingGlobally = (this.collectLogs && Log.isCollecting() &&
+      (Log.getCollectLevel() >= +level));
     
     if (collectingGlobally) {
       collection.push(toPrint);
@@ -1342,7 +1540,7 @@ var UNDEF;
         len = this.MAX_LOG_LEN;
       }
       if (this.collection.length > len) {
-          this.collection.splice(0, this.collection.length - len);
+        this.collection.splice(0, this.collection.length - len);
       }
     }
     
@@ -1354,7 +1552,7 @@ var UNDEF;
    */
   Log.clearAllLogs = function () {
     try {
-      c.clear();
+      _console.clear();
     } catch (e) {
     } finally {
       collection.splice(0, collection.length);
@@ -1410,8 +1608,8 @@ var UNDEF;
    */
   function logger(log, prefix, type, message, plain, style, plainStyle, level) {
     var toPrint;
-    var pass = Log.LEVEL >= level;
-    if (Log.COLLECT_LEVEL >= 0 || pass) {
+    var pass = LEVEL >= level;
+    if (Log.getCollectLevel() >= 0 || pass) {
       if (plain) {
         toPrint = [message, plainStyle, type];
       } else {
@@ -1506,331 +1704,328 @@ var UNDEF;
         Log.LEVEL_ERROR);
     };
     
-  Log.setConsole(Utils.global().console);
+  Log.setConsole(Define.global().console);
 }());
 
 
 
-
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
 
-(function(){
-    var Utils = qubit.opentag.Utils;
-    var log = new qubit.opentag.Log("Timer -> ");
-    
-    /**
-     * #Timer implementation.
-     * 
-     * Timer is intended to replace (wrap) the setTimeout
-     * method so over/misuse of `setTiemout`method can be controlled. 
-     * It supports rate and runtime runtime adjustment (slowing down etc.).
-     * 
-     * Interesting option for this timer is `dynamic` config property, if it
-     * is set to true timer will be using intelligent timing adjustment for 
-     * checking the execution stack (array where all timed out functions reside
-     * with time assigned). For example, if there is function timed to be run
-     * after 1000ms, timer will be checking stack around 1000ms later to run 
-     * ready functions, if there was another function with 200ms delay, timer 
-     * will check every 200ms if there is anything timed out in stack and so on
-     * till stack is empty.
-     * 
-     * Dynamic option is much more lighter but less accurate.
-     * 
-     * See the PAI for more details and other functions.
-     * 
-     * 
-     * @class qubit.opentag.Timer
-     * @param {Object} config
-     * @returns {qubit.opentag.Timer}
-     */
-    function Timer (config) {
-      if (config) {
-        log.FINEST("Config:");
-        log.FINEST(config, true);
-       /**
-        * @private
-        * Please use setRate to update timers rate
-        * @type Number
-        */
-        this._rate = config.rate || 10;
-        this._smallestRate = -1;
-        if (config.start) {
-          this.startPooling();
-        }
-        this.config = config;
+(function () {
+  var log = new qubit.opentag.Log("Timer -> ");
+
+  /**
+   * #Timer implementation.
+   * 
+   * Timer is intended to replace (wrap) the setTimeout
+   * method so over/misuse of `setTiemout`method can be controlled. 
+   * It supports rate and runtime runtime adjustment (slowing down etc.).
+   * 
+   * Interesting option for this timer is `dynamic` config property, if it
+   * is set to true timer will be using intelligent timing adjustment for 
+   * checking the execution stack (array where all timed out functions reside
+   * with time assigned). For example, if there is function timed to be run
+   * after 1000ms, timer will be checking stack around 1000ms later to run 
+   * ready functions, if there was another function with 200ms delay, timer 
+   * will check every 200ms if there is anything timed out in stack and so on
+   * till stack is empty.
+   * 
+   * Dynamic option is much more lighter but less accurate.
+   * 
+   * See the PAI for more details and other functions.
+   * 
+   * 
+   * @class qubit.opentag.Timer
+   * @param {Object} config
+   * @returns {qubit.opentag.Timer}
+   */
+  function Timer(config) {
+    if (config) {
+      log.FINEST("Config:");
+      log.FINEST(config, true);
+     /**
+      * @private
+      * Please use setRate to update timers rate
+      * @type Number
+      */
+      this._rate = config.rate || 10;
+      this._smallestRate = -1;
+      if (config.start) {
+        this.startPooling();
       }
-      this.inervals = [];
-      this._lck_obj = {};
-      this._binded_pool = this._pool.bind(this);
+      this.config = config;
     }
-    
-    Utils.clazz("qubit.opentag.Timer", Timer); 
-    
-    /**
-     * @property [Array] timers
-     * Array of pairs `{Date, Function}`
-     * `Date` stands for timed out date.
-     * `Function` is a function refernece to call.
-     */
-    Timer.prototype.timers = [];
-    
-    /**
-     * Function starts pooling.
-     * @param smallestRate {Number} optional smallest rate argument, it will 
-     *  be used as temporal rate if dynamic option is set on timer and not 
-     *  smaller than minimal rate set on timer
-     */
-    Timer.prototype.startPooling = function (smallestRate) {
-      if (smallestRate && this.config.dynamic) {
-        if(this._smallestRate < 0 || this._smallestRate > smallestRate){
-          //@TODO in futurewe can add more precise instrument than estimate
-          this._smallestRate = Math.min(Math.floor(smallestRate/2), 1500);
+    this.inervals = [];
+    this._lck_obj = {};
+    this._binded_pool = this._pool.bind(this);
+  }
+
+  qubit.Define.clazz("qubit.opentag.Timer", Timer); 
+
+  /**
+   * @property [Array] timers
+   * Array of pairs `{Date, Function}`
+   * `Date` stands for timed out date.
+   * `Function` is a function refernece to call.
+   */
+  Timer.prototype.timers = [];
+
+  /**
+   * Function starts pooling.
+   * @param smallestRate {Number} optional smallest rate argument, it will 
+   *  be used as temporal rate if dynamic option is set on timer and not 
+   *  smaller than minimal rate set on timer
+   */
+  Timer.prototype.startPooling = function (smallestRate) {
+    if (smallestRate && this.config.dynamic) {
+      if (this._smallestRate < 0 || this._smallestRate > smallestRate) {
+        //@TODO in futurewe can add more precise instrument than estimate
+        this._smallestRate = Math.min(Math.floor(smallestRate / 2), 1500);
+      }
+    }
+    if (!this.started) {
+      this.started = true;
+      setTimeout(this._binded_pool, 0);
+    }
+  };
+
+  /**
+   * @private
+   * Pooling function.
+   * Strictly private.
+   */
+  Timer.prototype._pool = function () {
+    this.maxFrequent(function () {
+      var name = "";
+      if (this.config && this.config.name) {
+        name = "[" + this.config.name + "]";
+      }
+      log.FINEST(name + "Pooling in progress...");
+    }, 5000, this._lck_obj);
+
+    this.callTimers();
+
+    if (this.timers.length !== 0) {
+      var rate = (this._smallestRate > this._rate) ?
+                          this._smallestRate : this._rate;
+      setTimeout(this._binded_pool, rate);
+    } else {
+      this.started = false;
+      this._smallestRate = -1;
+    }
+  };
+
+  /**
+   * Worker clearing outdated timers. Used internally.
+   * May be also called to manually to validate timers.
+   */
+  Timer.prototype.callTimers = function () {
+    this.lastCalled = new Date().valueOf();
+    for (var i = 0; i < this.timers.length; i++) {
+      var timer = this.timers[i];
+      var stamp = new Date().valueOf();
+      if (stamp >= timer.time) {
+        try {
+          timer.execute();
+        } catch (e) {
+          log.ERROR("Error calling timer: " + e);
         }
+        this.timers.splice(i, 1);
+        --i;
       }
-      if (!this.started) {
-        this.started = true;
-        setTimeout(this._binded_pool, 0);
-      }
-    };
-    
-    /**
-     * @private
-     * Pooling function.
-     * Strictly private.
+    }
+  };
+
+  /**
+   * Clear execution stack.
+   * It will remove any existing timeouts.
+   */
+  Timer.prototype.cancellAll = function () {
+    this.timers = [];
+    log.WARN("Cancelling all stack.");
+  };
+
+  /**
+   * Function setting maximum interval time for this instance clock.
+   * All setTiemout and setInterval will be no more often run than rate value.
+   * @param {Number} time ms
      */
-    Timer.prototype._pool = function () {
-      this.maxFrequent(function () {
-        var name = "";
-        if (this.config && this.config.name) {
-          name = "[" + this.config.name + "]";
-        }
-        log.FINEST(name + "Pooling in progress...");
-      }, 5000, this._lck_obj);
-      
-      this.callTimers();
-      
-      if (this.timers.length !== 0) {
-        var rate = (this._smallestRate > this._rate) ?
-                            this._smallestRate : this._rate;
-        setTimeout(this._binded_pool, rate);
-      } else {
-        this.started = false;
-        this._smallestRate = -1;
-      }
-    };
-    
-    /**
-     * Worker clearing outdated timers. Used internally.
-     * May be also called to manually to validate timers.
-     */
-    Timer.prototype.callTimers = function () {
-      this.lastCalled = new Date().valueOf();
-      for (var i = 0; i < this.timers.length; i++) {
-        var timer = this.timers[i];
-        var stamp = new Date().valueOf();
-        if (stamp >= timer.time) {
-          try {
-            timer.execute();
-          } catch (e) {
-            log.ERROR("Error calling timer: " + e)
-          }
-          this.timers.splice(i,1);
-          --i;
-        }
-      }
-    };
-    
-    /**
-     * Clear execution stack.
-     * It will remove any existing timeouts.
-     */
-    Timer.prototype.cancellAll = function () {
-      this.timers = [];
-      log.WARN("Cancelling all stack.");
-    };
-    
-    /**
-     * Function setting maximum interval time for this instance clock.
-     * All setTiemout and setInterval will be no more often run than rate value.
-     * @param {Number} time ms
-       */
-    Timer.prototype.setRate = function (time) {
-      this._rate = time;
-    };
-    
-    /**
-     * Function letting running `fun` argument no more often than `time` 
-     * property. **It does not warranty execution** - if function is recognised
-     * to be called too early - it will be not run.
-     * 
-     * If `lockObj` is unset `fun.__maxFrequent__timer_opentag_qubit_` property
-     *  will be used - notice that this lock will be shared with other calls 
-     *  on this `fun` instance if `lockObj` is not provided, to ensure it does 
-     *  not happen use a plain object instance or create separate instance of 
-     *  timer for each frequent callers.
-     * 
-     * Typically, lock object will be a private property dedicated for a 
-     * frequent calling block.
-     * 
-     * @param {Function} fun Function to be run
-     * @param {Number} time in ms
-     * @param {Object} lockObj lock object
-     */
-    Timer.prototype.maxFrequent = function(fun, time, lockObj) {
-      if (!lockObj) {
-        fun.__maxFrequent__timer_opentag_qubit_ = 
-                fun.__maxFrequent__timer_opentag_qubit_ || {};
-        lockObj = fun.__maxFrequent__timer_opentag_qubit_;
-      }
-      var last = lockObj.____last__timed__max__frequent____;
-      
-      if (!last || (new Date().valueOf() - last) > time) {
-        last = new Date().valueOf();
-        lockObj.____last__timed__max__frequent____ = last;
-        fun();
-      }
-    };
-    
-    /**
-     * Function that does not allow to run processes too often.
-     * It works similarry to `maxFrequent` with that difference that if call is
-     * detected too early it will not reject it but schedule to be run at 
-     * nearest available time. **If function was already scheduled to run soon - 
-     * it will not be scheduled.**
-     * @param {Function} fun Function to be run.
-     * @param {Number} time No more often then `time` in ms.
-     * @param {Object} lockObj Lock object (empty object used as a lock)
-     * @returns {Boolean} True if function was run immediately.
-     */
-    Timer.prototype.runIfNotScheduled = function(fun, time, lockObj) {
-      if (lockObj.__lastRun__ &&
-            (new Date().valueOf() < (time + lockObj.__lastRun__))) {
-        return this.schedule(fun, time, lockObj);
-      } else {
+  Timer.prototype.setRate = function (time) {
+    this._rate = time;
+  };
+
+  /**
+   * Function letting running `fun` argument no more often than `time` 
+   * property. **It does not warranty execution** - if function is recognised
+   * to be called too early - it will be not run.
+   * 
+   * If `lockObj` is unset `fun.__maxFrequent__timer_opentag_qubit_` property
+   *  will be used - notice that this lock will be shared with other calls 
+   *  on this `fun` instance if `lockObj` is not provided, to ensure it does 
+   *  not happen use a plain object instance or create separate instance of 
+   *  timer for each frequent callers.
+   * 
+   * Typically, lock object will be a private property dedicated for a 
+   * frequent calling block.
+   * 
+   * @param {Function} fun Function to be run
+   * @param {Number} time in ms
+   * @param {Object} lockObj lock object
+   */
+  Timer.prototype.maxFrequent = function (fun, time, lockObj) {
+    if (!lockObj) {
+      fun.__maxFrequent__timer_opentag_qubit_ = 
+              fun.__maxFrequent__timer_opentag_qubit_ || {};
+      lockObj = fun.__maxFrequent__timer_opentag_qubit_;
+    }
+    var last = lockObj.____last__timed__max__frequent____;
+
+    if (!last || (new Date().valueOf() - last) > time) {
+      last = new Date().valueOf();
+      lockObj.____last__timed__max__frequent____ = last;
+      fun();
+    }
+  };
+
+  /**
+   * Function that does not allow to run processes too often.
+   * It works similarry to `maxFrequent` with that difference that if call is
+   * detected too early it will not reject it but schedule to be run at 
+   * nearest available time. **If function was already scheduled to run soon - 
+   * it will not be scheduled.**
+   * @param {Function} fun Function to be run.
+   * @param {Number} time No more often then `time` in ms.
+   * @param {Object} lockObj Lock object (empty object used as a lock)
+   * @returns {Boolean} True if function was run immediately.
+   */
+  Timer.prototype.runIfNotScheduled = function (fun, time, lockObj) {
+    if (lockObj.__lastRun__ &&
+          (new Date().valueOf() < (time + lockObj.__lastRun__))) {
+      return this.schedule(fun, time, lockObj);
+    } else {
+      lockObj.__lastRun__ = new Date().valueOf();
+      fun();
+      return true;
+    }
+  };
+
+  /**
+   * Scheduler that schedules only if not already scheduled.
+   * @param {Function} fun
+   * @param {Number} time
+   * @param {Object} lockObj Lock object (empty object used as a lock)
+   * @returns {Boolean} false only lockObject indicate function is already 
+   * scheduled
+   */
+  Timer.prototype.schedule = function (fun, time, lockObj) {
+    if (lockObj.___scheduled___)  {
+      return false;
+    } else {
+      lockObj.___scheduled___ = new Date().valueOf();
+      this.setTimeout(function () {
+        lockObj.___scheduled___ = false;
         lockObj.__lastRun__ = new Date().valueOf();
         fun();
-        return true;
-      }
+      }, time);
+      return true;
+    }
+  };
+
+  var ids = 1;
+  /**
+   * Set timeout method.
+   * Run `call' function after minimum of `time` in miliseconds.
+   * It wraps standard setTimeout so all calls can be controlled in one place.
+   * @param {Function} call Function callback.
+   * @param {Number} time Tiemout value in miliseconds.
+   * @returns {Object} timer object (POJO)
+   */
+  Timer.prototype.setTimeout = function (call, time) {
+    var timer = {
+      id: ids++,
+      time: new Date().valueOf() + (+time),
+      execute: call
     };
-    
-    /**
-     * Scheduler that schedules only if not already scheduled.
-     * @param {Function} fun
-     * @param {Number} time
-     * @param {Object} lockObj Lock object (empty object used as a lock)
-     * @returns {Boolean} false only lockObject indicate function is already 
-     * scheduled
-     */
-    Timer.prototype.schedule = function(fun, time, lockObj) {
-      if (lockObj.___scheduled___)  {
-        return false;
-      } else {
-        lockObj.___scheduled___ = new Date().valueOf();
-        this.setTimeout(function () {
-          lockObj.___scheduled___ = false;
-          lockObj.__lastRun__ = new Date().valueOf();
-          fun();
-        }, time);
-        return true;
-      }
-    };
-    
-    var ids = 1;
-    /**
-     * Set timeout method.
-     * Run `call' function after minimum of `time` in miliseconds.
-     * It wraps standard setTimeout so all calls can be controlled in one place.
-     * @param {Function} call Function callback.
-     * @param {Number} time Tiemout value in miliseconds.
-     * @returns {Object} timer object (POJO)
-     */
-    Timer.prototype.setTimeout = function (call, time) {
-      var timer = {
-        id: ids++,
-        time: new Date().valueOf() + (+time),
-        execute: call
-      };
-      this.timers.push(timer);
-      this.startPooling(time);
-      return timer;
-    };
-    
-    /**
-     * Set interval method.
-     * Run `call' function every minimum of `time` in miliseconds.
-     * @param {Function} call Function callback.
-     * @param {Number} time Interval value in miliseconds.
-     * @returns {Object} setInterval return
-     */
-    Timer.prototype.setInterval = function (call, time) {
-      log.FINEST("Native wrapper");
-      var interv =  setInterval(call, time);
-      this.inervals.push(interv);
-      return interv;
-    };
+    this.timers.push(timer);
+    this.startPooling(time);
+    return timer;
+  };
+
+  /**
+   * Set interval method.
+   * Run `call' function every minimum of `time` in miliseconds.
+   * @param {Function} call Function callback.
+   * @param {Number} time Interval value in miliseconds.
+   * @returns {Object} setInterval return
+   */
+  Timer.prototype.setInterval = function (call, time) {
+    log.FINEST("Native wrapper");
+    var interv =  setInterval(call, time);
+    this.inervals.push(interv);
+    return interv;
+  };
 })();
 
 
 
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
 
-(function(){
-    var Utils = qubit.opentag.Utils;
-    
-    Utils.namespace("qubit.opentag.Timed", new qubit.opentag.Timer({
-      rate: 37,
-      dynamic: true
-    }));
-    
-    /**
-     * Singleton instance of qubit.opentag.Timer class with default rate of 20ms
-     * 
-     * This is a very useful object that replaces (wraps) standard `setTimeout` 
-     * function. By using `qubit.opentag.Timer` instance all processes are 
-     * controlled in a single timer loop with dynamic type execution. Dynamic 
-     * type means that no time outs are created if execution stack of Timer 
-     * class is empty. 
-     * 
-     * See [qubit.opentag.Timer](#!/api/qubit.opentag.Timer) for more details.
-     * 
-     * @class qubit.opentag.Timed
-     * @singleton
-     * @static
-     * @extends qubit.opentag.Timer
-     */
-    var Timed = qubit.opentag.Timed;
-    
-    /**
-     * Will wait for `test` function to return true, and when it return true
-     * callback will be fired. It will check on `test` method no more often than
-     * `often` number of milisecons. 
-     * @param {Function} test
-     * @param {Function} callback
-     * @param {Number} often
-     */
-    Timed.tillTrue = function(test, callback, often) {
-      var runner = function () {
-        if (!test()) {
-          Timed.setTimeout(runner, often || 33);
-        } else {
-          callback();
-        }
-      };
-      
-      runner();
+(function () {
+
+  qubit.Define.namespace("qubit.opentag.Timed", new qubit.opentag.Timer({
+    rate: 37,
+    dynamic: true
+  }));
+
+  /**
+   * Singleton instance of qubit.opentag.Timer class with default rate of 20ms
+   * 
+   * This is a very useful object that replaces (wraps) standard `setTimeout` 
+   * function. By using `qubit.opentag.Timer` instance all processes are 
+   * controlled in a single timer loop with dynamic type execution. Dynamic 
+   * type means that no time outs are created if execution stack of Timer 
+   * class is empty. 
+   * 
+   * See [qubit.opentag.Timer](#!/api/qubit.opentag.Timer) for more details.
+   * 
+   * @class qubit.opentag.Timed
+   * @singleton
+   * @static
+   * @extends qubit.opentag.Timer
+   */
+  var Timed = qubit.opentag.Timed;
+
+  /**
+   * Will wait for `test` function to return true, and when it return true
+   * callback will be fired. It will check on `test` method no more often than
+   * `often` number of milisecons. 
+   * @param {Function} test
+   * @param {Function} callback
+   * @param {Number} often
+   */
+  Timed.tillTrue = function (test, callback, often) {
+    var runner = function () {
+      if (!test()) {
+        Timed.setTimeout(runner, often || 33);
+      } else {
+        callback();
+      }
     };
-    
+
+    runner();
+  };
+
 })();
 
 var q = {};
@@ -1949,14 +2144,13 @@ q.html.fileLoader.tidyUrl = function (path) {
 
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
 
 (function () {
-  var Utils = qubit.opentag.Utils;
   var counter = 0;
   
   /**
@@ -1985,7 +2179,7 @@ q.html.fileLoader.tidyUrl = function (path) {
    * 
    * @param config {Object} config object used to build instance
    */
-  function BaseFilter (config) {
+  function BaseFilter(config) {
     /*log*/
     this.log = new qubit.opentag.Log("", function () {
       return this.CLASS_NAME + "[" + this.config.name + "]";
@@ -2043,7 +2237,7 @@ q.html.fileLoader.tidyUrl = function (path) {
     }
   }
   
-  Utils.clazz("qubit.opentag.filter.BaseFilter", BaseFilter);
+  qubit.Define.clazz("qubit.opentag.filter.BaseFilter", BaseFilter);
   
 
   /**
@@ -2149,14 +2343,13 @@ q.html.fileLoader.tidyUrl = function (path) {
 
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
 
 (function () {
-  var Utils = qubit.opentag.Utils;
   var BaseFilter = qubit.opentag.filter.BaseFilter;
 
   /**
@@ -2207,29 +2400,25 @@ q.html.fileLoader.tidyUrl = function (path) {
        * @param {Function} ready
        * @param {qubit.opentag.BaseTag} tag
        */
-      customStarter: function(session, ready, tag) {
-        ready(false);
-      },
+      //customStarter: null,
       /**
        * Script deciding either script matches or not (top API level).
        * @cfg {Function}
        * @param {qubit.opentag.Session} session
        * @returns {Boolean}
        */
-      customScript: function (session) {
-        return true;
-      }
+      //customScript: null
     };
     
     if (config) {
-      for(var prop in config) {
+      for (var prop in config) {
         if (config.hasOwnProperty(prop)) {
-          if (prop === "customStarter" && !config[prop]) {
-            continue;
+          if (prop === "customStarter" && config[prop]) {
+            this.customStarter = config[prop];
+          } else  if (prop === "customScript" && config[prop]) {
+            this.customScript = config[prop];
           }
-          if (prop === "customScript" && !config[prop]) {
-            continue;
-          }
+          
           defaultConfig[prop] = config[prop];
         }
       }
@@ -2238,10 +2427,40 @@ q.html.fileLoader.tidyUrl = function (path) {
     SessionVariableFilter.superclass.call(this, defaultConfig);
   }
   
-  Utils.clazz(
+  qubit.Define.clazz(
           "qubit.opentag.filter.SessionVariableFilter",
           SessionVariableFilter,
           BaseFilter);
+  
+  /**
+   * Custom starter function for session filter.
+   * Takes 3 arguments in the order:
+   *  1) `session` the session object
+   *  2) `ready` the ready callback that runs the tag, note: it will run the tag
+   *  directly.
+   *  3) `tag` tag reference object.
+   * This function can be overrided by `config.customStarter` function.
+   * 
+   * @param {qubit.opentag.Session} session
+   * @param {Function} ready
+   * @param {qubit.opentag.BaseTag} tag
+   */
+  SessionVariableFilter.prototype.customStarter = function (
+                                                          session,
+                                                          ready,
+                                                          tag) {
+    ready(false);
+  };
+  /**
+   * Script deciding either script matches or not (top API level).
+   * This function can be overrided by `config.customScript` function.
+   * 
+   * @param {qubit.opentag.Session} session
+   * @returns {Boolean}
+   */
+  SessionVariableFilter.prototype.customScript = function (session) {
+    return true;
+  };
   
   /**
    * Match function for a filter.
@@ -2249,7 +2468,10 @@ q.html.fileLoader.tidyUrl = function (path) {
    */
   SessionVariableFilter.prototype.match = function () {
     try {
-      return !!this.config.customScript(this.getSession());
+      if (this._matchState === undefined) {
+        this._matchState = !!this.customScript(this.getSession());
+      }
+      return this._matchState;
     } catch (ex) {
       this.log.FINE("Filter match throws exception:" + ex);
       return false;
@@ -2263,10 +2485,10 @@ q.html.fileLoader.tidyUrl = function (path) {
    */
   SessionVariableFilter.prototype.runTag = function (tag) {
     if (!this._runTag) {
-      if (this.config.customStarter) {
+      if (this.customStarter) {
         //trigger "customStarter", only once
         this._runTag = true;
-        this.config.customStarter(this.getSession(), function (rerun) {
+        this.customStarter(this.getSession(), function (rerun) {
           this.lastRun = new Date().valueOf();
           if (rerun === true) {
             tag.run();
@@ -2295,7 +2517,7 @@ q.html.fileLoader.tidyUrl = function (path) {
     }
     
     if (pass === BaseFilter.state.PASS) {
-      if (this.config.customStarter) {
+      if (this.customStarter) {
         pass = BaseFilter.state.SESSION;
       }
     }
@@ -2312,6 +2534,7 @@ q.html.fileLoader.tidyUrl = function (path) {
    * Reset function.
    */
   SessionVariableFilter.prototype.reset = function () {
+    this._matchState = undefined;
     SessionVariableFilter.superclass.prototype.reset.call(this);
     this._runTag = undefined;
   };
@@ -2477,425 +2700,474 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 
 (function () {
-    var Utils = qubit.opentag.Utils;
-    var log = new qubit.opentag.Log("TagsUtils -> ");
-    var BaseFilter = qubit.opentag.filter.BaseFilter;
-    var HtmlInjector = q.html.HtmlInjector;
-    var FileLoader = q.html.fileLoader;
-    var SessionVariableFilter = qubit.opentag.filter.SessionVariableFilter;
-    
-    /**
-     * #Tag utility class
-     * This class contains typical utility functions related to tags/loaders.
-     * @singleton
-     * @class qubit.opentag.TagsUtils
-     */
-    var TagsUtils = function () {};
-    
-    Utils.clazz("qubit.opentag.TagsUtils", TagsUtils);
-    
-    var _bodyLoaded = false;
-    /**
-     * Function returns true when body is interactible(it checks if body tag
-     * exists and "loading" state is unset).
-     * @returns {Boolean}
-     */
-    TagsUtils.bodyLoaded = function () {
-      if (_bodyLoaded) {
-        return true;
-      }
-      _bodyLoaded = !!(document.body && document.readyState !== "loading");
-      return _bodyLoaded;
-    };
-    
-    var loadedURLs = {};
-    
-    var STATE = {
-      SUCCESS: "success",
-      FAIL: "failure",
-      INIT: "not started"
-    };
-    
-    /**
-     * Utility function for script url loading.
-     * 
-     * @param {Object} config Configuration object with properties:
-     * 
-     *  - `url` url to use 
-     *  
-     *  - `noMultipleLoad` do not load URL if was previously loaded (optional)
-     *    
-     *  - `onsuccess` event handler (optional) 
-     *  
-     *  - `onerror`  event handler (optional)
-     *
-     *  - `node` node to append (optional)
-     * @return {undefined}
-     */
-    TagsUtils.loadScript = function (config) {
-      var url = config.url;
-      
-      var loadingCheck = function (passedUrlFromLoader, loadError, loadFailed) {
-        loadedURLs[url].error = loadError;
-        if (loadFailed) {
-          log.ERROR("Loading process error:");
-          log.ERROR(loadError, true);
-          loadedURLs[url].state = STATE.FAIL;
-          config.onerror();
-        } else {
-          loadedURLs[url].state = STATE.SUCCESS;
-          config.onsuccess();
-        }
-      };
-      
-      if (loadedURLs[url]) {
-        if (config.noMultipleLoad) {
-          log.FINE(url + " is already loaded, with state: " +
-                  loadedURLs[url].state);//L
-          return loadingCheck(
-            url,
-            loadedURLs[url].error,
-            loadedURLs[url].state === STATE.FAIL
-          );
-        }
-        loadedURLs[url].count += 1;
+  var log = new qubit.opentag.Log("TagsUtils -> ");
+  var BaseFilter = qubit.opentag.filter.BaseFilter;
+  var HtmlInjector = q.html.HtmlInjector;
+  var FileLoader = q.html.fileLoader;
+  var SessionVariableFilter = qubit.opentag.filter.SessionVariableFilter;
+
+  /**
+   * #Tag utility class
+   * This class contains typical utility functions related to tags/loaders.
+   * @singleton
+   * @class qubit.opentag.TagsUtils
+   */
+  var TagsUtils = function () {};
+
+  qubit.Define.clazz("qubit.opentag.TagsUtils", TagsUtils);
+
+  var _bodyLoaded = false;
+  /**
+   * Function returns true when body is interactible(it checks if body tag
+   * exists and "loading" state is unset).
+   * @returns {Boolean}
+   */
+  TagsUtils.bodyLoaded = function () {
+    if (_bodyLoaded) {
+      return true;
+    }
+    _bodyLoaded = !!(document.body && document.readyState !== "loading");
+    return _bodyLoaded;
+  };
+
+  var loadedURLs = {};
+
+  var STATE = {
+    SUCCESS: "success",
+    FAIL: "failure",
+    INIT: "not started"
+  };
+
+  /**
+   * Utility function for script url loading.
+   * 
+   * @param {Object} config Configuration object with properties:
+   * 
+   *  - `url` url to use 
+   *  
+   *  - `noMultipleLoad` do not load URL if was previously loaded (optional)
+   *    
+   *  - `onsuccess` event handler (optional) 
+   *  
+   *  - `onerror`  event handler (optional)
+   *
+   *  - `node` node to append (optional)
+   * @return {undefined}
+   */
+  TagsUtils.loadScript = function (config) {
+    var url = config.url;
+
+    var loadingCheck = function (passedUrlFromLoader, loadError, loadFailed) {
+      loadedURLs[url].error = loadError;
+      if (loadFailed) {
+        log.ERROR("Loading process error:");
+        log.ERROR(loadError, true);
+        loadedURLs[url].state = STATE.FAIL;
+        config.onerror();
       } else {
-        loadedURLs[url] = {
-          count: 1,
-          state: null
-        };
+        loadedURLs[url].state = STATE.SUCCESS;
+        config.onsuccess();
       }
-      
-      var useWrite = !config.async;
-      
-      var loaded = TagsUtils.bodyLoaded();
-      if (useWrite && loaded) {
-        log.WARN("Script configured for synchronous injection while " +
-                "document seems to be already loaded. Secure option " +//L
-                "applies. Script will be appended in standard way.");//L
-      }
-      
-      useWrite = useWrite && !loaded;
-      
-      if (useWrite) {
-        log.WARN("Adding script element by using document.write. IE will" +
-                " error check fail broken url's.");//L
-        TagsUtils.writeScriptURL(
+    };
+
+    if (loadedURLs[url]) {
+      if (config.noMultipleLoad) {
+        log.FINE(url + " is already loaded, with state: " +
+                loadedURLs[url].state);//L
+        return loadingCheck(
           url,
-          function (allOk, error) {
-            loadingCheck(url, error, !allOk);
-          });
-      } else {
-        FileLoader.load(
-          url,
-          false,
-          loadingCheck,
-          config.node,
-          config.async
+          loadedURLs[url].error,
+          loadedURLs[url].state === STATE.FAIL
         );
       }
+      loadedURLs[url].count += 1;
+    } else {
+      loadedURLs[url] = {
+        count: 1,
+        state: null
+      };
+    }
+
+    var useWrite = !config.async;
+
+    var loaded = TagsUtils.bodyLoaded();
+    if (useWrite && loaded) {
+      log.WARN("Script configured for synchronous injection while " +
+              "document seems to be already loaded. Secure option " +//L
+              "applies. Script will be appended in standard way.");//L
+    }
+
+    useWrite = useWrite && !loaded;
+
+    if (useWrite) {
+      log.WARN("Adding script element by using document.write. IE will" +
+              " error check fail broken url's.");//L
+      TagsUtils.writeScriptURL(
+        url,
+        function (allOk, error) {
+          loadingCheck(url, error, !allOk);
+        });
+    } else {
+      FileLoader.load(
+        url,
+        false,
+        loadingCheck,
+        config.node,
+        config.async
+      );
+    }
+  };
+
+  //this object is used to store native document.write functions
+  var redirectedDocWriteMethods = null;
+
+  function saveDocWriteMethods() {
+    redirectedDocWriteMethods = redirectedDocWriteMethods || {
+      write: document.write,
+      writeln: document.writeln
     };
-    
-    
-    var docWriteMethods = null;
-    
-    /**
-     * Function holding `document.write` calls and let any writes to be 
-     * collected into passed array as argument.
-     * 
-     * @param {Array} array
-     * @param {qubit.opentag.Log} log log instance (optional)
-       */
-    TagsUtils.redirectDocumentWritesToArray = function (array, log) {
-      var text = array;
-      log && log.FINE("redirecting document.write methods...");
-      docWriteMethods = docWriteMethods || {
-        write: document.write,
-        writeln: document.writeln
-      };
-      
-      document.write = function (t) {
-        text.push(t);
-        log && log.FINE("Received call from document.write with:" + t);
-      };
-      document.writeln = function (t) {
-        text.push(t);
-        log && log.FINE("Received call from document.writeln with:" + t);
-      };
-    };
-    
-    /**
-     * Function flushes all doc write redirects from the array passed (appended
-     * string) and brings back normal document.write method.
-     * 
-     * @param {Array} array
-     * @param {String} location
-     * @param {Boolean} append
-     * @param {qubit.opentag.Log} log
-     * @param {Function} cb callback
-     * @returns {Boolean} true if flushing location was ready and strings were
-     *                    appended.
+  }
+
+  function unlockDocWriteMethods() {
+    document.write = redirectedDocWriteMethods.write;
+    document.writeln = redirectedDocWriteMethods.writeln;
+    redirectedDocWriteMethods = null;
+  }
+
+  /**
+   * Function holding `document.write` calls and let any writes to be 
+   * collected into passed array as argument.
+   * 
+   * @param {Array} array
+   * @param {qubit.opentag.Log} log log instance (optional)
      */
-    TagsUtils.flushDocWritesArray =
-            function (array, location, append, log, cb) {
-      var el = location;
-      if (el && array) {
-        var flushed = array.splice(0, array.length);
-        try {
-          TagsUtils.injectHTML(el, append, flushed.join("\n"), cb || EMPTY_FUN);
-          return true;
-        } catch(ex) {
+  TagsUtils.redirectDocumentWritesToArray = function (array, log) {
+    var text = array;
+    if (log) {//L
+      log.FINE("redirecting document.write methods...");
+    }//L
+    
+    saveDocWriteMethods();
+
+    document.write = function (t) {
+      text.push(t);
+      if (log) {//L
+        log.FINE("Received call from document.write with:" + t);
+      }//L
+    };
+    
+    document.writeln = function (t) {
+      text.push(t);
+      if (log) {//L
+        log.FINE("Received call from document.writeln with:" + t);
+      }//L
+    };
+  };
+
+  /**
+   * Function flushes all doc write redirects from the array passed (appended
+   * string) and brings back normal document.write method.
+   * 
+   * @param {Array} array
+   * @param {String} location
+   * @param {Boolean} append
+   * @param {qubit.opentag.Log} log
+   * @param {Function} cb callback
+   * @returns {Boolean} true if flushing location was ready and strings were
+   *                    appended.
+   */
+  TagsUtils.flushDocWritesArray =
+          function (array, location, append, log, cb) {
+    var el = location;
+    if (el && array) {
+      var flushed = array.splice(0, array.length);
+      try {
+        TagsUtils.injectHTML(el, append, flushed.join("\n"), cb || EMPTY_FUN);
+        return true;
+      } catch (ex) {
+        if (log) {//L
           log.ERROR("Loading html caused exception:" + ex);
-        }
+        }//L
+      }
+    } else {
+      var message = "Flushing location not found!";
+      if (log) {//L
+        log.ERROR(message);
+      }//L
+      return false;
+    }
+
+    if (cb) {
+      cb();
+    }
+
+    return true;
+  };
+
+  /**
+   * Unlocks document writes to normal state (if locked).
+   */
+  TagsUtils.unlockDocumentWrites = function () {
+    if (redirectedDocWriteMethods) {
+      if (log) {//L
+        log.FINEST("Bringing back document.write");
+      }//L
+      unlockDocWriteMethods();
+    }
+  };
+  
+  var accessorBasePath = TagsUtils.prototype.PACKAGE_NAME + 
+          ".TagsUtils._writeScriptURL_callbacks";
+  
+  //declare it in global namespace:
+  var accesorBase = {};
+  qubit.Define.namespace(accessorBasePath, accesorBase, GLOBAL);
+  
+  var wsCounter = 0;
+  /**
+   * Note - this method is NOT write safe! It operates directly on 
+   * document.write even if redirected.
+   * @param {String} url
+   * @param {Function} callback
+   */
+  TagsUtils.writeScriptURL = function (url, callback) {
+    //@TODO review it.
+    var callName = "_" + wsCounter++;
+    var accessorName = accessorBasePath + "." + callName;
+
+    accesorBase[callName] = function (error) {
+      if (error) {
+        callback(false, "error while loading script " + url);
       } else {
-        var message = "Flushing location not found!";
-        log && log.ERROR(message);
-        return false;
+        callback(true);
       }
-      if (cb) {
-        cb();
-      }
-      return true;
+      accesorBase[callName] = undefined;
+      delete TagsUtils.writeScriptURL.callbacks[callName];
     };
 
-    /**
-     * Unlocks document writes to normal state (if locked).
-     */
-    TagsUtils.unlockDocumentWrites = function () {
-      if (docWriteMethods) {
-        log && log.FINEST("Bringing back document.write");     
-        document.write = docWriteMethods.write;
-        document.writeln = docWriteMethods.writeln;
-        docWriteMethods = null;
-      }
-    };
+    var jsIE = "if(this.readyState === \"loaded\" || " +
+            "this.readyState === \"complete\"){ try {" +
+             accessorName + "(true)" +
+            "} catch (ex) {}}";
 
-    var wsCounter = 0;
-    /**
-     * @deprecated
-     * Old qtag write method for scripts.
-     * @param {String} url
-     * @param {Function} callback
-     */
-    TagsUtils.writeScriptURL = function (url, callback) {
-      //@TODO review it.
-      var callName = "_" + wsCounter++;
-      var accessorName = TagsUtils.prototype.PACKAGE_NAME +
-              ".TagsUtils.writeScriptURL.callbacks." + callName;
-          
-      TagsUtils.writeScriptURL.callbacks[callName] = function (error) {
-        if (error) {
-          callback(false, "error while loading script " + url);
-        } else {
-          callback(true);
-        }
-        TagsUtils.writeScriptURL.callbacks[callName] = undefined;
-        delete TagsUtils.writeScriptURL.callbacks[callName];
-      };
-      
-      var jsIE = "if(this.readyState === \"loaded\" || " +
-              "this.readyState === \"complete\"){ try {" +
-               accessorName + "(true)" +
-              "} catch (ex) {}}";
-      
-      var jsNonIE = "try{" + accessorName + "(false)}catch(ex){}";
-      var jsNonIEerr = "try{" + accessorName +
-              "(true)}catch(ex){}";
-      
-      var scr = "scr", value;
-      url = FileLoader.tidyUrl(url);
-      value = "<" + scr + "ipt onload='" + jsNonIE +
-              "'  onerror='" + jsNonIEerr +
-              "' onreadystatechange='" + jsIE +
-              "' type='text/javascript' " +
-              " src='" + url + "'>" +
-              //@TODO consider adding async option here
-              //(doies it  really make sense?)
-        "</" + scr + "ipt>";
+    var jsNonIE = "try{" + accessorName + "(false)}catch(ex){}";
+    var jsNonIEerr = "try{" + accessorName +
+            "(true)}catch(ex){}";
+
+    var scr = "scr", value;
+    url = FileLoader.tidyUrl(url);
+    value = "<" + scr + "ipt onload='" + jsNonIE +
+            "'  onerror='" + jsNonIEerr +
+            "' onreadystatechange='" + jsIE +
+            "' type='text/javascript' " +
+            " src='" + url + "'>" +
+            //@TODO consider adding async option here
+            //(doies it  really make sense?)
+      "</" + scr + "ipt>";
+    
+    if (redirectedDocWriteMethods) {
+      //js is single threaded
+      unlockDocWriteMethods();
       document.write(value);
-    };
-    
-    TagsUtils.writeScriptURL.callbacks = {};
-    
-    var SESSION = BaseFilter.state.SESSION;
-    var PASS = BaseFilter.state.PASS;
-    var FAIL = BaseFilter.state.FAIL;
-    
-    /**
-     * Entry method used to check if all filters used by this tag are passed.
-     * BaseTag searches for filters in this.config.**package**.filters location.
-     * The location should indicate all filters used by this tag.
-     * The **package* config property is a crucial tags property used to
-     * configure antiore tags. Filters can be added at runtime and via config
-     * object as an array.
-     * @param filters {Array} Array of filters to be analysed.
-     * @param session {qubit.opentag.Session} tag that check is
-     *  performed on
-     * @returns {BaseFilter.state} numerical state.
-     */
-    TagsUtils.filtersState = function (filters, session, tag) {
-      //tag.log.FINEST("Sorting filters...");
-      //@todo maybe this should be done buch earlier
-      filters = filters.sort(function (a, b) {
-        try {
-          return b.config.order - a.config.order;
-        } catch (nex) {
-          return 0;
-        }
-      });
-      
-      var decision = PASS;
-      if (!filters || (filters.length === 0)) {
-        return decision;
+      saveDocWriteMethods();
+    } else {
+      document.write(value);
+    }
+  };
+
+  TagsUtils.writeScriptURL.callbacks = {};
+
+  var SESSION = BaseFilter.state.SESSION;
+  var PASS = BaseFilter.state.PASS;
+  var FAIL = BaseFilter.state.FAIL;
+
+  /**
+   * Entry method used to check if all filters used by this tag are passed.
+   * BaseTag searches for filters in this.config.**package**.filters location.
+   * The location should indicate all filters used by this tag.
+   * The **package* config property is a crucial tags property used to
+   * configure antiore tags. Filters can be added at runtime and via config
+   * object as an array.
+   * @param filters {Array} Array of filters to be analysed.
+   * @param session {qubit.opentag.Session} tag that check is
+   *  performed on
+   * @returns {BaseFilter.state} numerical state.
+   */
+  TagsUtils.filtersState = function (
+                                    filters,
+                                    session,
+                                    tag,
+                                    runLastSessionFilterIfPresent) {
+    //tag.log.FINEST("Sorting filters...");
+    //@todo maybe this should be done buch earlier
+    filters = filters.sort(function (a, b) {
+      try {
+        return b.config.order - a.config.order;
+      } catch (nex) {
+        return 0;
       }
-      
-      //loop and execute - MATCH
-      var lastFilterResponded = null;
-      var disabledFiltersPresent = false;
-      var sessionFiltersPresent = false;
-      var waitingResponse = 0;
-      var response;
-      var lastSessionFilter;
-      
-      var filter;
-      var lastUnmatched;
-      for (var i = 0; i < filters.length; i++) {
-        filter = filters[i];
-        filter.setSession(session);
-        
-        if (filter.match()) {
-          response = filter.getState();
-          // positive response means that filter tells to WAIT for execution
-          // and try in 'response' miliseconds
-          if (response > 0) {
-            if (waitingResponse === 0 || waitingResponse > response) {
-              waitingResponse = response;
-            }
-          } else if (response === BaseFilter.state.DISABLED) {
-            tag.log.WARN("filter with name " + filter.config.name +
-                    " is disabled");//L
-            disabledFiltersPresent = true;
-          } else if (response === SESSION) {
-            sessionFiltersPresent = true;
-            lastFilterResponded = filter;
-            lastSessionFilter = filter;
-          } else {
-            lastFilterResponded = filter;
+    });
+
+    var decision = PASS;
+    if (!filters || (filters.length === 0)) {
+      return decision;
+    }
+
+    //loop and execute - MATCH
+    var lastFilterResponded = null;
+    var disabledFiltersPresent = false;
+    var sessionFiltersPresent = false;
+    var waitingResponse = 0;
+    var response;
+    var lastSessionFilter;
+    var sessionFiltersToRun = [];
+
+    var filter;
+    var lastUnmatched;
+    for (var i = 0; i < filters.length; i++) {
+      filter = filters[i];
+      filter.setSession(session);
+
+      if (filter.match()) {
+        response = filter.getState();
+        // positive response means that filter tells to WAIT for execution
+        // and try in 'response' miliseconds
+        if (response > 0) {
+          if (waitingResponse === 0 || waitingResponse > response) {
+            waitingResponse = response;
           }
+        } else if (response === BaseFilter.state.DISABLED) {
+          tag.log.WARN("filter with name " + filter.config.name +
+                  " is disabled");//L
+          disabledFiltersPresent = true;
+        } else if (response === SESSION) {
+          sessionFiltersPresent = true;
+          lastFilterResponded = filter;
+          lastSessionFilter = filter;
+          sessionFiltersToRun.push(filter);
         } else {
-          lastUnmatched = filter;
-        }
-      }
-      
-      var onlyAwaitingFiltersPresent = false;
-      if (lastFilterResponded === null) {
-        onlyAwaitingFiltersPresent = true;
-        if (!disabledFiltersPresent) {
-          //all filters failed
-          decision = FAIL;
-        } else {
-          //none passed but one of filters was disabled
-          decision = PASS;
+          lastFilterResponded = filter;
         }
       } else {
-        //some filters matched, review state of final matched filter
-        if (lastFilterResponded.config.include) {
-          //last response was to INCLUDE this tag
-          decision = response;
-        } else {
-          //last response was to EXCLUDE this tag
-          decision = (response === PASS) ? FAIL : PASS;
-        }
+        lastUnmatched = filter;
       }
-      
-      //if all passed, 
-      //after standard checks, check if any filter called to wait
-      if (waitingResponse > 0 && 
-              (decision === PASS || onlyAwaitingFiltersPresent)) {
-        decision = waitingResponse;
+    }
+
+    var onlyAwaitingFiltersPresent = false;
+    if (lastFilterResponded === null) {
+      onlyAwaitingFiltersPresent = true;
+      if (!disabledFiltersPresent) {
+        //all filters failed
+        decision = FAIL;
+      } else {
+        //none passed but one of filters was disabled
+        decision = PASS;
       }
-      
-      if (decision === SESSION ||
-              ((decision === PASS) && sessionFiltersPresent)) {
-        if (!lastSessionFilter.config.include) {
-          return FAIL;
-        }
-        
-        decision = SESSION;
-        if (lastSessionFilter instanceof SessionVariableFilter) {
-          try {
-            lastSessionFilter.runTag(tag);
-          } catch (ex) {
-            lastSessionFilter.log.FINEST("trying custom starter failed:" + ex);
+    } else {
+      //some filters matched, review state of final matched filter
+      if (lastFilterResponded.config.include) {
+        //last response was to INCLUDE this tag
+        decision = response;
+      } else {
+        //last response was to EXCLUDE this tag
+        decision = (response === PASS) ? FAIL : PASS;
+      }
+    }
+
+    //if all passed, 
+    //after standard checks, check if any filter called to wait
+    if (waitingResponse > 0 && 
+            (decision === PASS || onlyAwaitingFiltersPresent)) {
+      decision = waitingResponse;
+    }
+
+    if (decision === SESSION ||
+            ((decision === PASS) && sessionFiltersPresent)) {
+      if (!lastSessionFilter.config.include) {
+        return FAIL;
+      }
+
+      decision = SESSION;
+      if (lastSessionFilter instanceof SessionVariableFilter) {
+        if (runLastSessionFilterIfPresent) {
+          for (var c = 0; c < sessionFiltersToRun.length; c++) {
+            try {
+              sessionFiltersToRun[c].runTag(tag);
+            } catch (ex) {
+              sessionFiltersToRun[c].log
+                      .FINEST("trying custom starter failed:" + ex);
+            }
           }
         }
       }
-      
-      if (tag.config.dedupe && decision === PASS) {
-        if (lastUnmatched && lastUnmatched instanceof SessionVariableFilter) {
-          tag.sendDedupePing = true;
-          decision = FAIL;
-        }
-      }
-      
-      return decision;
-    };
+    }
 
-    /**
-     * HTML injection utility.
-     * This function will analyse code if there are any script objects and call 
-     * calback when everything is loaded.
-     * @param {Element} location DOM Element where to append
-     * @param {Boolean} append Appent or insert before (false).
-     * @param {String} html HTML to be appended
-     * @param {Function} callback Callback to be called when ready.
-     */
-    TagsUtils.injectHTML = function (location, append, html, callback) {
+    if (tag.config.dedupe && decision === PASS) {
+      if (lastUnmatched && lastUnmatched instanceof SessionVariableFilter) {
+        tag.sendDedupePing = true;
+        decision = FAIL;
+      }
+    }
+
+    return decision;
+  };
+
+  /**
+   * HTML injection utility.
+   * This function will analyse code if there are any script objects and call 
+   * calback when everything is loaded.
+   * @param {Element} location DOM Element where to append
+   * @param {Boolean} append Appent or insert before (false).
+   * @param {String} html HTML to be appended
+   * @param {Function} callback Callback to be called when ready.
+   */
+  TagsUtils.injectHTML = function (location, append, html, callback) {
 //      if (!TagsUtils.bodyLoaded()) {
 //        document.write(html);
 //        callback();
 //        return;
 //      }
-      //@TODO: this is old code, and buggy, refactor it.
-      return HtmlInjector.inject(
-              location,
-              (!append) ? 1 : 0,
-              html,
-              callback || EMPTY_FUN);
-    };
-    
-    /**
-     * Resolves injection location for a tag.
-     * 
-     * @param {qubit.opentag.BaseTag} tag Tag reference
-     * @returns {Element} document Element location for a tag.
-     */
-    TagsUtils.getHTMLLocationForTag = function (tag) {
-      var el;
-      var name = tag.prepareLocationObject(tag.config.locationObject);
-      switch (name) {
-        case "HEAD":
-           el = document.getElementsByTagName("head")[0];
-           break;
-         case "BODY":
-           el = document.body;
-           break;
-         default:
-          if (name) {
-            el = document.getElementById(name);
-          } else {
-            el = document.body;
-          }
+    //@TODO: this is old code, and buggy, refactor it.
+    return HtmlInjector.inject(
+            location,
+            (!append) ? 1 : 0,
+            html,
+            callback || EMPTY_FUN);
+  };
+
+  /**
+   * Resolves injection location for a tag.
+   * 
+   * @param {qubit.opentag.BaseTag} tag Tag reference
+   * @returns {Element} document Element location for a tag.
+   */
+  TagsUtils.getHTMLLocationForTag = function (tag) {
+    var el;
+    var name = tag.prepareLocationObject(tag.config.locationObject);
+    switch (name) {
+    case "HEAD":
+      el = document.getElementsByTagName("head")[0];
+      break;
+    case "BODY":
+      el = document.body;
+      break;
+    default:
+      if (name) {
+        el = document.getElementById(name);
+      } else {
+        el = document.body;
       }
-      
-      return el;
-    };
-    
+    }
+
+    return el;
+  };
+
 })();
 
 
+
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -2932,7 +3204,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @class qubit.opentag.pagevariable.BaseVariable
    * @param config {Object} config object used to build instance
    */
-  function BaseVariable (config) {
+  function BaseVariable(config) {
     //defaults
     this.config = {};
     
@@ -2971,7 +3243,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     }
   }
   
-  Utils.clazz("qubit.opentag.pagevariable.BaseVariable", BaseVariable);
+  qubit.Define.clazz("qubit.opentag.pagevariable.BaseVariable", BaseVariable);
   
   BaseVariable.ALL_VARIABLES = {};
 
@@ -3079,8 +3351,12 @@ q.html.HtmlInjector.getAttributes = function (node) {
     if (!Utils.variableExists(pageValue)) {
       pageValue = defaultValue;
     }
+    var defLoc;
     if (useDefaults && !Utils.variableExists(pageValue)) {
-      pageValue = this.getDefaultValue();
+      defLoc = this.getDefaultValue();
+      if (Utils.variableExists(defLoc)) {
+        pageValue = defLoc;
+      }
     }
     return pageValue;
   };
@@ -3097,7 +3373,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @returns {String} replacement
    */
   BaseVariable.prototype.replaceToken =
-          function(token, string, altValue, useExpressionAccessor) {
+          function (token, string, altValue, useExpressionAccessor) {
     var exists = this.exists();
     var value = exists ? this.getValue() : altValue;
     token = "\\$\\{" + token + "\\}";
@@ -3141,7 +3417,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -3173,7 +3449,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     Expression.superclass.apply(this, arguments);
   }
   
-  Utils.clazz(
+  qubit.Define.clazz(
           "qubit.opentag.pagevariable.Expression",
           Expression,
           qubit.opentag.pagevariable.BaseVariable);
@@ -3210,9 +3486,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
     }
     /*log*/
     Timed.maxFrequent(function () {
-    	if (this.failMessage) {
-    		this.log.FINEST(this.failMessage);
-    	}
+      if (this.failMessage) {
+        this.log.FINEST(this.failMessage);
+      }
       this.log.FINEST("getting value from expression: " + ret);
     }.bind(this), 10000, this._lockExprObject);
     /*~log*/
@@ -3232,10 +3508,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
     var pathOfElements = parts[1];
     
     if (pathOfElements.indexOf(".") === 0) {
-      pathOfElements = pathOfElements.replace(".","");
+      pathOfElements = pathOfElements.replace(".", "");
     }
     
-    for(var i = 0; i < array.length; i++) {
+    for (var i = 0; i < array.length; i++) {
       var element = Utils.getObjectUsingPath(pathOfElements, array[i]);
       collection.push(element);
     }
@@ -3255,7 +3531,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @returns {String} replaced string
    */
   Expression.prototype.replaceToken =
-          function(token, string, altValue, exp) {
+          function (token, string, altValue, exp) {
     if ((this.getValue() instanceof Array)) {
       exp = true;
     }
@@ -3268,8 +3544,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 
 
+
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -3290,7 +3567,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     DOMText.superclass.apply(this, arguments);
   }
   
-  Utils.clazz(
+  qubit.Define.clazz(
           "qubit.opentag.pagevariable.DOMText",
           DOMText,
           qubit.opentag.pagevariable.BaseVariable);
@@ -3306,75 +3583,208 @@ q.html.HtmlInjector.getAttributes = function (node) {
 }());
 
 
-/*global escape, unescape*/
+/*
+ * TagSDK, a tag development platform
+ * Copyright 2014, Qubit Group
+ * http://opentag.qubitproducts.com
+ * Author: Peter Fronc <peter.fronc@qubitdigital.com>
+ */
 
+(function () {
+  var cookieAlphabet = 
+          "abcdefghijklmnopqrstuvwxyz" + "0123456789" +
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "*!-#$&+()@" +
+          "'%./:<>?[" + "\"]^_`{|}~" +
+          "\\" +
+          ";=";
+  
+  var cookieAlphabetMap = {};
+  for (var i = 0; i < cookieAlphabet.length; i++) {
+    cookieAlphabetMap[cookieAlphabet.charAt(i)] = i;
+  }
+  
+  /**
+   * @class qubit.Cookie
+   * 
+   * Cookie class with static methods to use for setting and getting and
+   * removing cookie.
+   * 
+   * @param {Object} config
+   */
+  function Cookie(config) {
+  }
 
-q.html.simplecookie = {};
-
-q.html.simplecookie.readCookie = function (name) {
-  var r, cookie, value, cookies, nameSearchString, i, ii;
-  nameSearchString = name + "=";
-  cookies = document.cookie.split(';');
-  r = /^\s+|\s+$/g;
-  for (i = 0, ii = cookies.length; i < ii; i += 1) {
-    cookie = cookies[i].replace(r, '');
-    if (cookie.indexOf(nameSearchString) === 0) {
-      value = unescape(cookie.substring(nameSearchString.length));
-      if (value.length === 0) {
-        return null;
-      }
-      return value;
+  qubit.Define.clazz("qubit.Cookie", Cookie);
+  
+  Cookie.cookieAlphabet = cookieAlphabet;
+  Cookie.cookieAlphabetMap = cookieAlphabetMap;
+  
+  /**
+   * @static
+   * Default decoding method for cookie. Defaulting to `decodeURIComponent`.
+   * 
+   * @param {String} string string to decode
+   * @returns {String} decoded string
+   */
+  Cookie.decode = function (string) {
+    return unescape(string); //old version compatibility
+  };
+  /**
+   * @static
+   * Default encoding method for cookie. Defaulting to `encodeURIComponent`.
+   * 
+   * @param {String} string string to encode
+   * @returns {String} encoded string
+   */
+  Cookie.encode = function (string) {
+    return escape(string);
+  };
+  
+  /**
+   * @static
+   * Cookie setter function.
+   * 
+   * @param {String} name cookie name
+   * @param {String} value cookie string to be set
+   * @param {Number} days days to expire
+   * @param {String} domain cookie domain
+   * @param {Boolean} notEncoded if should NOT encode value and name with default
+   *    method.
+   */
+  Cookie.set = function (name, value, days, domain, notEncoded) {
+    var expires;
+    if (days) {
+      var date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      expires = "; expires=" + date.toGMTString();
+    } else {
+      expires = "";
     }
-  }
-  return null;
-};
-q.html.simplecookie.readAllCookies = function (name) {
-  var r, cookie, value, cookies, nameSearchString, i, ii, values;
-  nameSearchString = name + "=";
-  cookies = document.cookie.split(';');
-  r = /^\s+|\s+$/g;
-  values = [];
-  for (i = 0, ii = cookies.length; i < ii; i += 1) {
-    cookie = cookies[i].replace(r, '');
-    if (cookie.indexOf(nameSearchString) === 0) {
-      value = unescape(cookie.substring(nameSearchString.length));
-      if (value.length > 0) {
-        values.push(value);
+    
+    if (!notEncoded) {
+      name = Cookie.encode(name);
+      value = Cookie.encode(value);
+    }
+    
+    var cookie = name + "=" + value + expires + "; path=/;";
+
+    if (domain) {
+      cookie += " domain=" + domain;
+    }
+
+    document.cookie = cookie;
+  };
+
+  /**
+   * @static
+   * Get cookie function.
+   * 
+   * @param {String} name cookie name
+   * @param {Boolean} notDecoded should NOT cookie be decoded using default
+   *  method. If true, cookie will not be decoded.
+   * 
+   * @returns {String} cookie string or `null` if not found.
+   */
+  Cookie.get = function (name, notDecoded) {
+    var part = name + "=";
+    var chunks = document.cookie.split(';');
+    for (var i = 0; i < chunks.length; i++) {
+      var chunk = chunks[i];
+      while (chunk.charAt(0) === ' ') {
+        chunk = chunk.substring(1, chunk.length);
+      }
+      if (chunk.indexOf(part) === 0) {
+        var tmp = chunk.substring(part.length, chunk.length);
+        if (!notDecoded) {
+          tmp = Cookie.decode(tmp);
+        }
+        return tmp;
       }
     }
-  }
-  return values;
-};
-q.html.simplecookie.writeCookie = function (name, value, days, domain) {
-  var date, expires, cookie;
-  if (days) {
-    date = new Date();
-    date.setTime(date.getTime() + (days * 86400000));
-    expires = "; expires=" + date.toGMTString();
-  } else {
-    expires = "";
-  }
-  cookie = escape(name) + "=" + escape(value) + expires + "; path=/;";
-  if (domain) {
-    cookie += " domain=" + domain;
-  }
-  document.cookie = cookie;
-};
+    return null;
+  };
+
+  /**
+   * @static
+   * Gets all of cookies for given name.
+   * 
+   * @param {String} name cookie(s) name
+   * @param {Boolean} decoded should cookies be decoded using default method.
+   * 
+   * @returns {Array} cookies strings array, if there is no cookies, 
+   *    empty array is returned.
+   */
+  Cookie.getAllForName = function (name, decoded) {
+    if (!name) {
+      return [];
+    }
+    var part = name + "=";
+    var chunks = document.cookie.split(';');
+    var cookies = [];
+    for (var i = 0; i < chunks.length; i++) {
+      var chunk = chunks[i];
+      while (chunk.charAt(0) === ' ') {
+        chunk = chunk.substring(1, chunk.length);
+      }
+      if (chunk.indexOf(part) === 0) {
+        var tmp = chunk.substring(part.length, chunk.length);
+        if (decoded) {
+          tmp = Cookie.decode(tmp);
+        }
+        cookies.push(tmp);
+      }
+    }
+    return cookies;
+  };
+  /**
+   * Gets all cookies and returns them as pairs [name, value],
+   * decoded by default.
+   * @param {type} decoded
+   * @returns {Array}
+   */
+  Cookie.getAll = function (decoded) {
+    var chunks = document.cookie.split(';');
+    var cookies = [];
+    for (var i = 0; i < chunks.length; i++) {
+      var chunk = chunks[i];
+      while (chunk.charAt(0) === ' ') {
+        chunk = chunk.substring(1, chunk.length);
+      }
+      var name = chunk.substring(0, chunk.indexOf("="));
+      var tmp = chunk.substring(name.length + 1, chunk.length);
+      if (decoded) {
+        tmp = Cookie.decode(tmp);
+      }
+      cookies.push([name, tmp]);
+    }
+    return cookies;
+  };
+
+  /**
+   * @static
+   * Clearing cookie function.
+   * 
+   * @param {String} name cookie name
+   * @param {String} domain cookie domain
+   */
+  Cookie.rm = function (name, domain) {
+    Cookie.set(name, "", -1, domain);
+  };
+
+})();
 
 
 
 
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
 
 (function () {
-  var SimpleCookie = q.html.simplecookie;
-  var Utils = qubit.opentag.Utils;
   var Timed = qubit.opentag.Timed;
 
   
@@ -3394,7 +3804,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     this._lockObject = {};
   }
   
-  Utils.clazz(
+  qubit.Define.clazz(
           "qubit.opentag.pagevariable.Cookie",
           Cookie,
           qubit.opentag.pagevariable.BaseVariable);
@@ -3405,7 +3815,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @returns {String} cookie value
    */
   Cookie.prototype.getValue = function () {
-    var val = SimpleCookie.readCookie(this.value);
+    var val = qubit.Cookie.get(this.value);
     Timed.maxFrequent(function () {
       this.log.FINEST("reading cookie value: " + val);
     }.bind(this), 2000, this._lockObject);
@@ -3416,8 +3826,9 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
 
 
 
+
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -3441,7 +3852,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     URLQuery.superclass.apply(this, arguments);
   }
   
-  Utils.clazz(
+  qubit.Define.clazz(
     "qubit.opentag.pagevariable.URLQuery",
     URLQuery,
     qubit.opentag.pagevariable.BaseVariable);
@@ -3455,11 +3866,12 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   };
 }());
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * @author Piotr (Peter) Fronc <peter.fronc@qubitproducts.com>
  */
+
 
 
 
@@ -3491,9 +3903,9 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * specific for tag execution and management.
    * 
    */
-  function TagHelper () {};
+  function TagHelper() {}
 
-  Utils.clazz("qubit.opentag.TagHelper", TagHelper);
+  qubit.Define.clazz("qubit.opentag.TagHelper", TagHelper);
 
   /**
    * Injects HTML fragments for a tag.
@@ -3504,7 +3916,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @param {String} altHtml
    */
   TagHelper.injectHTMLForLoader = 
-          function(tag, callback, tryWrite, altHtml) {
+          function (tag, callback, tryWrite, altHtml) {
     var config = tag.config;
     var html = (altHtml !== undefined) ? altHtml : config.html;
 
@@ -3518,7 +3930,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       
       try {
         if (location) {
-          TagsUtils.injectHTML(location, append, html, function() {
+          TagsUtils.injectHTML(location, append, html, function () {
             tag.log.FINE("finished html injection.");
             tag.injectHTMLNotFinished = false;
             if (callback) {
@@ -3531,8 +3943,8 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
             }
           }.bind(tag));
         } else if (tryWrite && document.readyState === "loading") {
-            document.write(html);
-            tag.injectHTMLNotFinished = false;
+          document.write(html);
+          tag.injectHTMLNotFinished = false;
         } else {
           tag.injectHTMLFailed = new Date().valueOf();
           tag.log.ERROR("location was not found or/and html is " + 
@@ -3560,12 +3972,13 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     var ret = [];
     try {
       var params = tag.parameters;
-      if (params)
+      if (params) {
         for (var i = 0; i < params.length; i++) {
           if (params[i].variable === varRef) {
             ret.push(params[i]);
           }
         }
+      }
     } catch (ex) {}
     return ret;
   }
@@ -3575,7 +3988,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @param {qubit.opentag.BaseTag} tag
    * @returns {Array} Array of [parameter,variable] pairs
    */
-  TagHelper.getAllVariablesWithParameters = function(tag) {
+  TagHelper.getAllVariablesWithParameters = function (tag) {
     var vars = tag.getPageVariables();
     var results = [];
     for (var i = 0; i < vars.length; i++) {
@@ -3599,7 +4012,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @param {Boolean} tryDefaults
    * @returns {Boolean}
    */
-  TagHelper.allParameterVariablesReadyForTag = function(tag, tryDefaults) {
+  TagHelper.allParameterVariablesReadyForTag = function (tag, tryDefaults) {
     var useDefaults = tryDefaults;
     var log = tag.log;
     var allReady = true;
@@ -3613,7 +4026,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         var exist = pageVar.exists();
         if (!exist && useDefaults) {
           if (parameters.length > 0) {
-            exist = Utils.variableExists(parameters[0].defaultValue);
+            exist = !!parameters[0].defaultValue;
           }
           exist = exist || pageVar.exists(true);
         }
@@ -3621,7 +4034,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         /*log*/
         var name = pageVar.config.name ? pageVar.config.name : "[unnamed]";
 
-        Timed.maxFrequent(function() {
+        Timed.maxFrequent(function () {
           log.FINEST("Variable '" + name + "' exists? " + exist);
         }, 5000, _lock_obj);
         /*~log*/
@@ -3632,7 +4045,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         }
       } catch (ex) {
         /*log*/
-        Timed.maxFrequent(function() {
+        Timed.maxFrequent(function () {
           log.ERROR("Error checking variable existence ");
           log.ERROR([pageVar, ex]);
         }, 5000, _lock_obj);
@@ -3648,7 +4061,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       _lock_obj.alreadyNotified = true;
     }
 
-    Timed.maxFrequent(function() {
+    Timed.maxFrequent(function () {
       log.FINEST("Checking page variables, variables are ready: " + allReady);
       if (!allReady) {
         log.FINE("Variables not ready, waiting...");
@@ -3676,24 +4089,24 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @returns {qubit.opentag.pagevariable.BaseVariable} instance of 
    *    BaseVariable or null
    */
-  TagHelper.validateAndGetVariableForParameter = function(param) {
-    if (param.hasOwnProperty("variable")) {
-      if (param.variable) {
-        return param.variable = TagHelper.initPageVariable(param.variable);
-      }
-    }
-    
-    if (param.uv) {//empty strings are also excluded
-      return param.variable = new Expression({
+  TagHelper.validateAndGetVariableForParameter = function (param) {
+    if (param.hasOwnProperty("variable") && param.variable) {//@todo review
+      //validate it:
+      param.variable = TagHelper.initPageVariable(param.variable);
+    } else if (param.uv) {//empty strings are also excluded
+      param.variable = new Expression({
         name: param.uv,
         value: param.uv
       });
+    } else {
+      //got here? well: not set! initialize:
+      param.variable = TagHelper.initPageVariable({
+        value: undefined,
+        empty: true //marker to recognise empty initialization
+      });
     }
-    //got here? well: not set! initialize.
-    return param.variable = TagHelper.initPageVariable({
-      value: undefined,
-      empty: true
-    });
+    
+    return param.variable;
   };
   
   /**
@@ -3729,27 +4142,114 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       return cfg;
     }
     switch (cfg.type) {
-      case JS_VALUE:
-        return new Expression(cfg);
-      case QUERY_PARAM:
-        return  new URLQuery(cfg);
-      case COOKIE_VALUE:
-        return new Cookie(cfg);
-      case ELEMENT_VALUE:
-        return new DOMText(cfg);
-      case 'EPRESSION':
-        return new Expression(cfg);
-      case 'URL_PARAMETER':
-        return  new URLQuery(cfg);
-      case 'COOKIE_VALUE':
-        return new Cookie(cfg);
-      case 'DOM_VALUE':
-        return new DOMText(cfg);
-      default:
-        return new BaseVariable(cfg);
+    case JS_VALUE:
+      return new Expression(cfg);
+    case QUERY_PARAM:
+      return  new URLQuery(cfg);
+    case COOKIE_VALUE:
+      return new Cookie(cfg);
+    case ELEMENT_VALUE:
+      return new DOMText(cfg);
+    case 'EPRESSION':
+      return new Expression(cfg);
+    case 'URL_PARAMETER':
+      return  new URLQuery(cfg);
+    case 'COOKIE_VALUE':
+      return new Cookie(cfg);
+    case 'DOM_VALUE':
+      return new DOMText(cfg);
+    default:
+      return new BaseVariable(cfg);
     }
   };
 }());
+/* 
+ * To change this license header, choose License Headers in 
+ * Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+
+
+
+
+(function () {
+  var Define = qubit.Define;
+  var Utils = qubit.opentag.Utils;
+  
+  /**
+   * @class qubit.Events
+   * Simple events manager.
+   * 
+   * @param {Object} config empty object.
+   */
+  function Events(config) {
+    this.log = new qubit.opentag.Log("Events -> ");
+    this.calls = {};
+  }
+  
+  /**
+   * Simple events adding function. IT pushes a function to named
+   * execution array. If function already is in the array, 
+   * it has no effect. To access array, use 'this.calls' on 
+   * this object.
+   * @param {String} name simple name for event.
+   * @param {Function} call
+   * @returns {Number} index in array of events for the name. 
+   *        -1 if added at end of queue.
+   */
+  Events.prototype.on = function (name, call) {
+    this.calls[name] = this.calls[name] || [];
+    return Utils.addToArrayIfNotExist(this.calls[name], call);
+  };
+  
+  /**
+   * Function will cause triggering event for given name.
+   * @param {String} name Event name
+   */
+  Events.prototype.call = function (name) {
+    var calls = this.calls[name];
+    if (calls) {
+      for (var i = 0; i < calls.length; i++) {
+        try {
+          calls[i]();
+        } catch (ex) {
+          this.log.ERROR("Error while running event: " + ex);
+        }
+      }
+    }
+  };
+
+  /**
+   * Delete event from array.
+   * @param {String} name event name
+   * @param {Function} call to be removed.
+   * @returns {undefined}
+   */
+  Events.prototype.remove = function (name, call) {
+    return Utils.removeFromArray(this.calls[name], call);
+  };
+  
+  /**
+   * Removes all event handlers === to call of any type from this object.
+   * @param {Function} call
+   * @returns {Number} Total amount of removed events.
+   */
+  Events.prototype.removeAll = function (call) {
+    var total = 0;
+    for (var prop in this.calls) {
+      if (this.calls.hasOwnProperty(prop)) {
+        total += Utils.removeFromArray(this.calls[prop], call);
+      }
+    }
+    return total;
+  };
+  
+  Define.clazz("qubit.Events", Events);
+})();
+
+
 
 
 
@@ -3758,7 +4258,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
 
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -3862,18 +4362,20 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     this.log = new Log("", function () {
       return this.CLASS_NAME + "[" + this.config.name + "]";
     }.bind(this), "collectLogs");
-    /*~log*/
-    var _this = this;
-    this.log
-      .ERROR = function (msg) {
-        Log.prototype.ERROR.apply(this, arguments);
-        try {
-          _this.onError(msg);
-        } catch (e) {}
-      };
     
+    /*~log*/
     this.urlsLoaded = 0;
     this.urlsFailed = 0;
+    
+    //consider moving all direct events here
+    this.events = new qubit.Events({});
+    
+    this._depLoadedHandler = function () {
+      if (this.dependenciesLoaded() && this.awaitingDependencies) {
+        this.log.FINE("All dependencies has run successfuly. Triggering load.");
+        this._triggerLoadingAndExecution();
+      }
+    }.bind(this);
     
     this.config = {
       /**
@@ -3980,7 +4482,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
        * @cfg {Boolean} [loadDependenciesOnLoad=false]
        */
       loadDependenciesOnLoad: false
-  };
+    };
     
     /**
      * If checked and usesDocumentWrite is true, tag will be instructed to 
@@ -4041,7 +4543,8 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       }
       
       if (config.dependencies) {
-        this.dependencies = config.dependencies.concat(this.dependencies);
+        var deps = config.dependencies.concat(this.getDependencies());
+        this.setDependencies(deps);
       }
       
       if (config.PACKAGE) {
@@ -4052,7 +4555,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     }
   }
   
-  Utils.clazz("qubit.opentag.GenericLoader", GenericLoader);
+  qubit.Define.clazz("qubit.opentag.GenericLoader", GenericLoader);
   
   /**
    * @event Empty on init event.
@@ -4079,23 +4582,12 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * 
    * This is a direct method used to execute `script` function on the loader.
    * It does check if config containe `script` property and will replace current
-   * `this.script` function with passed configuration. If the `config.script` 
-   * is a string, it will be used to construct function to be run (not eval 
-   * will be run), the functi0on is always executed with tag scope applied.
+   * `this.script` function with passed configuration.
    * This function is not intended to be use outside class and therefore is
-   * strictly private.
-   * @private
+   * strictly protected.
+   * @protected
    */
   GenericLoader.prototype._executeScript = function () {
-    if (this.config && this.config.script) {
-      if (typeof (this.config.script) === "function") {
-        this.script = this.config.script;
-      } else {
-        var expr = this.replaceTokensWithValues(String(this.config.script));
-        this.script = Utils.expressionToFunction(expr).bind(this);
-      }
-    }
-    
     this.log.INFO("executing main script...");
     var success = false;
     
@@ -4106,11 +4598,12 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     } catch (ex) {
       this.addState("EXECUTED_WITH_ERRORS");
       this.log.ERROR("Error while executing: " + ex);
-      this.log.ERROR("There was an error while executing instance of tag: "
-              + this.CLASS_NAME + " from package: " + this.PACKAGE_NAME);//L
+      this.log.ERROR("There was an error while executing instance of tag: " +
+              this.CLASS_NAME + " from package: " + this.PACKAGE_NAME);//L
       this.log.ERROR(ex, true);
+      this._onError(ex);
     } finally {
-      this.onExecute(success);
+      this._onExecute(success);
     }
   };
   
@@ -4129,10 +4622,10 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    */
   GenericLoader.prototype._getTimeout = function (chain) {
     var tout = +this.config.timeout;
-    if (tout !== -1 && this.dependencies.length > 0) {
+    if (tout !== -1 && this.getDependencies().length > 0) {
       var max = 0;
       chain = chain || [];
-      var deps = this.dependencies;
+      var deps = this.getDependencies();
       var present = (Utils.indexInArray(chain, this) !== -1);
       if (!present) {
         chain[chain.length] = this;
@@ -4151,7 +4644,20 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     }
     return tout;
   };
-  
+  /**
+   * @private
+   * Strictly private. May be disposed at any time.
+   * @param {Boolean} noErrors if error occured is passed.
+   */
+  GenericLoader.prototype._onExecute = function (noErrors) {
+    try {
+      this.onExecute(noErrors);
+    } finally {
+      if (noErrors) {
+        this.events.call("success");
+      }
+    }
+  };
   /**
    * @event
    * onExecute event - will be triggered only if main execution occurs.
@@ -4175,7 +4681,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       var loc = TagsUtils.getHTMLLocationForTag(this);
       if (loc && this._securedWrites && this._securedWrites.length > 0) {
         this.log.FINE("flushing document.write proxy array");
-        this.log.FINE("flushing: "+ this._securedWrites.join("\n"));
+        this.log.FINE("flushing: " + this._securedWrites.join("\n"));
         var append = (this.config.locationPlaceHolder === "END");
         ret = TagsUtils.flushDocWritesArray(
             this._securedWrites,
@@ -4191,6 +4697,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       }
     } catch (ex) {
       this.log.ERROR("Unexpected exception during flushing! " + ex);
+      this._onError(ex);
     }
     
     if (cb) {
@@ -4241,10 +4748,11 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   GenericLoader.prototype.before = function () {
     this.log.FINE("running before handler...");
     this.beforeRun = new Date().valueOf();
-    try{ 
+    try { 
       this.onBefore();
     } catch (ex) {
       this.log.ERROR("onBefore error: " + ex);
+      this._onError(ex);
     }
   };
   
@@ -4267,12 +4775,13 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @param success {Boolean} If the script executed without errors
    */
   GenericLoader.prototype.after = function (success) {
-    this.log.FINE("running after handler...");
+    this.log.FINE("running after...");
     this.afterRun =  new Date().valueOf();
-    try{ 
+    try { 
       this.onAfter(success);
     } catch (ex) {
       this.log.ERROR("onAfter error: " + ex);
+      this._onError(ex);
     }
   };
   
@@ -4288,23 +4797,27 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * By using this function one can be sure that script will be executed only
    * once until script is reset.
    * Use this function if you must be ensured that execution occurs only once.
-   * @param {Boolean} ignoreDeps if ignore dependencies and run immediately. 
    */
-  GenericLoader.prototype.runOnce = function (ignoreDeps) {
+  GenericLoader.prototype.runOnce = function () {
     if (!this._runOnceTriggered && !this.scriptExecuted) {
       this._runOnceTriggered = new Date().valueOf();
-      this.run(ignoreDeps);
+      this.run();
     } else {
       this.log.FINEST("runOnce has been already executed.");
     }
   };
   
   /**
-   * This properety will cause ALL loaders/tags/libraries to cancel running on
-   * `run()` time. It is convinient property to controll that any tag will not
-   * be run after setting to `true`.
+   * 
+   * GenericLoader.CANCEL_ALL properety will cause ALL loaders/tags/libraries
+   * to cancel running on `run()` time. It is convinient property to controll 
+   * that any tag will not be run after setting to `true`.
+   * 
+   * @property {Boolean} CANCEL_ALL If set to true, all tags, if not run yet,
+   * will be cancelled - no tag will run.
+   * @static
    */
-  GenericLoader.CANCELL_ALL = false;
+  GenericLoader.CANCEL_ALL = false;
   
   /**
    * It tells how many times loader was run.
@@ -4318,12 +4831,10 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * will be ignored.
    * If there is no dependencies to load, script will be invoked immediately.
    * This method has no effect is tag is in running state (is currently loading).
-   * @param {Boolean} ignoreDependencies if true, loader will not wait 
-   * for dependencies to load
    * @returns {Boolean} false if tag is currently loading, true otherwise.
    */
-  GenericLoader.prototype.run = function (ignoreDependencies) {
-    if (this.cancelled || GenericLoader.CANCELL_ALL) {
+  GenericLoader.prototype.run = function () {
+    if (this.cancelled || GenericLoader.CANCEL_ALL) {
       this._handleCancel();
       return false;
     }
@@ -4340,14 +4851,70 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     
     this.lastRun = this.isRunning = new Date().valueOf();
     this.runCounter++;
+    this._ignoreDeps = !!this.ignoreDependencies;
+    if (!this._ignoreDeps && !this.dependenciesLoaded()) {
+      this.log.FINE("Dependencies (other loaders) not ready. " +
+              " Attaching handlers.");//L
+      // as all deps are not loaded - there will be at least one that will call
+      // success event where this parent will listen. Cannot continue otherwise.
+      this._attachDepsEventsToContinue();
+      return false;
+    }
+    
+    return this._triggerLoadingAndExecution();
+  };
+  
+  /**
+   * @private strictly private. Execution load and trigger.
+   * @returns {Boolean}
+   */
+  GenericLoader.prototype._triggerLoadingAndExecution =
+          function () {
+    this.awaitingDependencies = -new Date().valueOf();
     
     //make sure its loaded before execution
-    this.load(ignoreDependencies);
+    this.load();
     
-    if (ignoreDependencies) {
+    if (this._ignoreDeps) {
       this.execute();
     } else {
       this.waitForDependenciesAndExecute();
+    }
+    return true;
+  };
+  
+  /**
+   * @private
+   * Strictly private.
+   * @returns {undefined}
+   */
+  GenericLoader.prototype._attachDepsEventsToContinue = function () {
+    this.log.FINE("Attaching success events to dependencies...");
+    //important lock and state indicator!
+    this.awaitingDependencies = new Date().valueOf();
+    
+    var deps = this.getDependencies();
+    for (var i = 0; i < deps.length; i++) {
+      deps[i].events.on("success", this._depLoadedHandler);
+    }
+    
+    this.log.FINE("Attached " + deps.length + " handlers.");
+  };
+  
+  /**
+   * Returns true only if all dependant loaders were successfuly run.
+   * 
+   * @returns {Boolean}
+   */
+  GenericLoader.prototype.dependenciesLoaded = function () {
+    var deps = this.getDependencies();
+    for (var i = 0; i < deps.length; i++) {
+      if (deps[i] !== this) {
+        var executed = (+deps[i].scriptExecuted) > 0;
+        if (!executed) {
+          return false;
+        }
+      }
     }
     return true;
   };
@@ -4368,6 +4935,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       this.onCancel();
     } catch (ex) {
       this.log.ERROR("Exception at onCancel" + ex);
+      this._onError(ex);
     }
   };
 
@@ -4432,14 +5000,14 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       this._handleCancel();
       return;
     }
-    
+
     if (this.scriptExecuted) {
       return; //execution can be called only if script execution state is unset
     }
-    
+
     var finished = true;
-    
-    if(this.shouldWaitForDocWriteProtection()) {
+
+    if (this.shouldWaitForDocWriteProtection()) {
       finished = false;
     } else {
       if (!this._beforeEntered) {
@@ -4447,11 +5015,12 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         var cancel = false;
 
         try {
-            cancel = this.before();
+          cancel = this.before();
         } catch (ex) {
           //decision changed: failured before callback must stop execution.
           this.log.ERROR("`before` thrown an exception");
           this.log.ERROR(ex, true);
+          this._onError(ex);
         }
 
         if (cancel) {
@@ -4461,7 +5030,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
           return;
         }
       }
-      finished = 
+      finished =
               this.loadExecutionURLsAndHTML(this._triggerExecution.bind(this));
     }
     
@@ -4536,6 +5105,12 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   
   /**
    * @event
+   * Triggered when tag is cancelled.
+   */
+  GenericLoader.prototype.onCancel = EMPTY_FUN;
+  
+  /**
+   * @event
    * Triggered if tag is loading and cancelled method is triggered.
    */
   GenericLoader.prototype.onFinished = EMPTY_FUN;
@@ -4546,6 +5121,15 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @returns {Boolean}
    */
   GenericLoader.prototype.shouldWaitForDocWriteProtection = function () {
+//    if (GenericLoader.LOCK_DOC_WRITE !== this && 
+//        GenericLoader.LOCK_DOC_WRITE) {
+//      //this condition holds tag to wait at any other tag using doc write
+//      //currently TagsUtils.writeScriptURL checks if redirects of doc write
+//      //are set and will unlock it for current execution of tags that can use 
+//      //doc write and dont need to wait.
+//      //KEEP this block for debugging reasons.
+//      return true;
+//    }
     if (this.willSecureDocumentWrite()) {
       //we can use more generic check
       if (!GenericLoader.LOCK_DOC_WRITE) {
@@ -4570,7 +5154,8 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * It will behave exactly as `this.run(true)`
    */
   GenericLoader.prototype.runWithoutDependencies = function () {
-    this.run(true);
+    this.ignoreDependencies = true;
+    this.run();
   };
   
   /**
@@ -4692,18 +5277,18 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   GenericLoader.prototype.STATE = {
     INITIAL: 0,
     STARTED: 1,
-    CANCELLED: 1*2,
-    LOADING_DEPENDENCIES: 2*2,
-    LOADED_DEPENDENCIES: 4*2,
-    LOADING_URL: 8*2,
-    LOADED_URL: 16*2,
-    EXECUTED: 32*2,
-    EXECUTED_WITH_ERRORS: 64*2,
-    FAILED_TO_LOAD_DEPENDENCIES: 128*2,
-    FAILED_TO_LOAD_URL: 256*2,
-    FAILED_TO_EXECUTE: 512*2,
-    TIMED_OUT: 1024*2,
-    UNEXPECTED_FAIL: 2048*2
+    LOADING_DEPENDENCIES: 2,
+    LOADED_DEPENDENCIES: 4,
+    LOADING_URL: 8,
+    LOADED_URL: 16,
+    EXECUTED: 32,
+    EXECUTED_WITH_ERRORS: 64,
+    FAILED_TO_LOAD_DEPENDENCIES: 128,
+    FAILED_TO_LOAD_URL: 256,
+    FAILED_TO_EXECUTE: 512,
+    TIMED_OUT: 1024,
+    UNEXPECTED_FAIL: 2048,
+    CANCELLED: 2048 * 2
   };
   
   /**
@@ -4720,6 +5305,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         this.onStateChange(stateName);
       } catch (ex) {
         this.log.ERROR(ex);
+        this._onError(ex);
       }
     }
   };
@@ -4761,7 +5347,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
      * has been finished.
      */
     this.loadedDependencies = new Date().valueOf();
-    this.onDependenciesLoaded();
+    this.onAllDependenciesLoaded();
   };
   
   /**
@@ -4798,12 +5384,12 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
      */
     this.waitForDependenciesFinished = new Date().valueOf();
     
-    if (this.dependenciesLoaded()) {
+    if (this.allDependenciesLoaded()) {
       this._markLoadedSuccesfuly();
     } else {
       if (this._loadingOutOfTimeFrames()) {
         this.loadingTimedOut = new Date().valueOf();
-        if (this.dependenciesLoaded(true)) {//give last chance for defaults
+        if (this.allDependenciesLoaded(true)) {//give last chance for defaults
           this._markLoadedSuccesfuly();
         } else {
           this.log.WARN("timed out while loading dependencies.");
@@ -4828,14 +5414,14 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       this._lockObject.curr = curr;
       
       Timed.maxFrequent(function () {
-        this.log.FINE("Waiting for dependencies, counting... "
-                + this._lockObject.count++ + " (" + steps + ")");//L
+        this.log.FINE("Waiting for dependencies, counting... " +
+                this._lockObject.count++ + " (" + steps + ")");//L
       }.bind(this), freq, this._lockObject);
       /*~log*/
     } else {
       this.addState("LOADED_DEPENDENCIES");
     }
-  };
+  }
   
   /**
    * Checker indicating if all dependencies are satisfied.
@@ -4843,7 +5429,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @param {Array} arrayToAdd optional failures to write array
    * @returns {Boolean}
    */
-  GenericLoader.prototype.dependenciesLoaded =
+  GenericLoader.prototype.allDependenciesLoaded =
           function (tryDefaults, arrayToAdd) {
     return this.getDependenciesToBeLoaded(tryDefaults, arrayToAdd).length === 0;
   };
@@ -4864,21 +5450,22 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     var failures = arrayToAdd || [];
 
     if (!this.injectionLocationReady()) {
-      failures.push("html injection location");
+      failures.push("injection location");
     }
-    
-    for(var i = 0; i < this.dependencies.length; i++) {
-      if (this.dependencies[i] !== this) {
-        var state = this.dependencies[i].scriptExecuted;
-        if (!state || +state <= 0) {
-          var name = this.dependencies[i].config ?
-            this.dependencies[i].config.name : "anonymous";
+    var i;
+    var deps = this.getDependencies();
+    for (i = 0; i < deps.length; i++) {
+      if (deps[i] !== this) {
+        var executed = (+deps[i].scriptExecuted) > 0;
+        if (!executed) {
+          var name = deps[i].config ?
+            deps[i].config.name : "anonymous";
           failures.push("dependant Tag with name -> " + name);
         }
       }
     }
     
-    for(var i = 0; i < this.genericDependencies.length; i++) {
+    for (i = 0; i < this.genericDependencies.length; i++) {
       var ready = this.genericDependencies[i](this);
       if (!ready) {
         failures.push("this.genericDependencies[" + i + "] (index: " + i + ")");
@@ -4894,7 +5481,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
           } else {
             this.log.FINE("Dependencies check: No basic dependencies.");
           }
-      }.bind(this), 5000, this._lockObjectDepsLoaded);
+        }.bind(this), 5000, this._lockObjectDepsLoaded);
       /*~log*/
     }
     
@@ -4910,7 +5497,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   GenericLoader.prototype.docWriteAsksToWaitForBody = function () {
     //tag must wait for location if asynchronous, or instructed to protect
     //writes
-    return !!(this.config.delayDocWrite && this.config.usesDocumentWrite);
+    return !!(this.delayDocWrite && this.config.usesDocumentWrite);
   };
   
   /**
@@ -4955,17 +5542,36 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     if (this.getTimeout() < 0) {
       return false;
     }
-    return (new Date().valueOf() - this.loadStarted) > 
+    return (new Date().valueOf() - this.timeoutCountdownStart) > 
       this.getTimeout();
   };
   
   /**
    * Function used as a worker for processing loaders's other dependant tags.
    * It is a looping trigger to call "load" on dependencies.
-   * `this.dependencies` array containes other dependant loaders.
+   * `this.getDependencies()` array containes other dependant loaders.
    */
   GenericLoader.prototype.loadDependencies = function () {
     this._loadDependencies();
+  };
+  
+  /**
+   * Dependant loaders array getter.
+   * @returns {Array} dependencies array, instances of loaders this loader
+   *                  is dependant on. The array can be used to add more
+   *                  dependencies.
+   */
+  GenericLoader.prototype.getDependencies = function () {
+    return this.dependencies;
+  };
+  
+  /**
+   * Setter for dependant loaders.
+   * @param {Array} deps dependencies array. Array of 
+   *                 qubit.opentag.GenericLoader instances.
+   */
+  GenericLoader.prototype.setDependencies = function (deps) {
+    this.dependencies = deps;
   };
   
   /**
@@ -4975,12 +5581,12 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    */
   GenericLoader.prototype._loadDependencies = function (chain) {
     chain = chain || [];
-    var deps = this.dependencies;
+    var deps = this.getDependencies();
     var present = Utils.indexInArray(chain, this) !== -1;
     if (!present) {
       chain[chain.length] = this;
       for (var i = 0; i < deps.length; i++) {
-          deps[i].load(chain);
+        deps[i].load(chain);
       }
     }
   };
@@ -4989,10 +5595,23 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @event
    * If there is any loading error, Tag SDK will call this function with the
    * error message as a parameter. Override wherever necessary.
-   * It is called each time an `log.ERROR` is called and not only.
+   * It is called each time an `log._onError` is called.
    * @param {String} error Error string.
    */
   GenericLoader.prototype.onError = EMPTY_FUN;
+  
+  /**
+   * @private
+   * Strictly private.
+   * @param {Object} msg
+   */
+  GenericLoader.prototype._onError = function (msg) {
+    try {
+      this.onError(msg);
+    } catch (ex) {
+      
+    }
+  };
   
   /**
    * Triggers onLoadTimeout event.
@@ -5025,7 +5644,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @event
    * Triggered when loader's dependencies are loaded.
    */
-  GenericLoader.prototype.onDependenciesLoaded = EMPTY_FUN;
+  GenericLoader.prototype.onAllDependenciesLoaded = EMPTY_FUN;
   
   /**
    * @event onBeforeLoad
@@ -5048,20 +5667,21 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * 
    * Can be run only once. `load` function is an entry point for any process 
    * leading to run/execute the tag.
-   * @param {Boolean} ignoreDependencies if ignore dependencies
    */
-  GenericLoader.prototype.load = function (ignoreDependencies) {
+  GenericLoader.prototype.load = function () {
     if (this.loadStarted) {
       return;
     } else {
-      this.loadStarted = new Date().valueOf();
+      this.loadStarted = this.timeoutCountdownStart = new Date().valueOf();
       try {
         this.onBeforeLoad();
       } catch (ex) {
         this.log.ERROR("onBeforeLoad error: " + ex);
+        this._onError(ex);
       }
     }
 
+    //by default dependencies (other tags) are not loaded automatically
     this.addState("LOADING_DEPENDENCIES");
     this.log.INFO("Load started.");
     
@@ -5070,12 +5690,12 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
        * @property {Number} loadStarted Timestamp telling when loading process
        *  has started.
        */
-      if (!ignoreDependencies && this.config.loadDependenciesOnLoad) {
+      if (!this._ignoreDeps && this.config.loadDependenciesOnLoad) {
         this.loadDependencies();
       }
     } catch (ex) {
-      this.log.ERROR("loadDependencies: unexpected exception occured: \n"
-              + ex + "\ntrying to finish... ");//L
+      this.log.ERROR("loadDependencies: unexpected exception occured: \n" +
+              ex + "\ntrying to finish... ");//L
       throw ex;
     }
     
@@ -5109,21 +5729,24 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
           }
         } catch (ex) {
           this.log.ERROR("Callback error:" + ex);
+          this._onError(ex);
         } finally {
           this.onScriptsLoadSuccess();
         }
       } else {
         var message = "error loading urls. Failed " + this.urlsFailed;
         this.log.ERROR(message);
+        this._onError(message);
         this.addState("FAILED_TO_LOAD_URL");
         this.urlsLoaded = -new Date().valueOf();
-        try{
+        try {
           this.scriptLoadingFailed = true;
           if (callback) {
             callback(false);
           }
         } catch (ex) {
           this.log.ERROR("Callback error:" + ex);
+          this._onError(ex);
         } finally {
           this.onScriptLoadError(message);
         }
@@ -5158,13 +5781,13 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         this.loadURL(url, function (success) {
           this._singleUrlLoadHandler(success, urls, callback);
         }.bind(this));
-        
       }
     } catch (ex) {
       this.log.ERROR("loadURLs thrown unexpected exception! : " + ex);
       this.loadURLsNotFinished = false;
       this.addState("UNEXPECTED_FAIL");
       this.unexpectedFail = new Date().valueOf();
+      this._onError(ex);
     }
   };
 
@@ -5218,7 +5841,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       }.bind(this),
       onerror: function () {
         this.log.ERROR("error loading " + passedUrl);
-        try{
+        try {
           if (callback) {
             callback(false);
           }
@@ -5269,6 +5892,8 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     this._lastRun = u;
     this.cancelled = u;
     this._beforeEntered = u;
+    this.awaitingDependencies = u;
+    this.timeoutCountdownStart = u;
     this.addState("INITIAL");
   };
   
@@ -5338,7 +5963,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
 
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -5382,8 +6007,8 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       * @cfg filterTimeout
       * @type Number
       */
-      filterTimeout: (config && config.filterTimeout) 
-              || this.FILTER_WAIT_TIMEOUT,
+      filterTimeout: (config && config.filterTimeout) ||
+              this.FILTER_WAIT_TIMEOUT,
       /**
        * Package property indicates where this tag will reside
        * (in what namespace). This property is used by structure packagers to
@@ -5444,7 +6069,20 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
        * @cfg runner
        * @type Function
        */
-      runner: null
+      runner: null,
+      /**
+       * If set to true, tag will not be run automatically by container.
+       * @cfg disabled
+       * @type Boolean
+       */
+      disabled: false,
+      /**
+       * Indicates this tag will be locked untill `unlock` method will be 
+       * called. By default no tag is locked.
+       * @cfg locked
+       * @type Boolean
+       */
+      locked: false
     };
     
     Utils.setIfUnset(config, defaults);
@@ -5520,7 +6158,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         for (var prop in config.variables) {
           if (config.variables.hasOwnProperty(prop)) {
             var param = this.getParameterByTokenName(prop);
-            if(param) {
+            if (param) {
               var variable = config.variables[prop];
               param.variable = variable;
               if (variable.defaultValue !== undefined) {
@@ -5534,14 +6172,24 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         }
       }
       
+      if (config.locked) {
+        this.lock();
+      }
+      
       this.log.FINEST("Initializing variables.");
       this.initPageVariablesForParameters();
+      
+      /**
+       * @property {String} uniqueRefString This property is 
+       * null by default. Typically, it is set by a container instance if any.
+       */
+      this.uniqueRefString = null;
       
       this.onTagInit();
     }
   }
   
-  Utils.clazz("qubit.opentag.BaseTag", BaseTag, GenericLoader);
+  qubit.Define.clazz("qubit.opentag.BaseTag", BaseTag, GenericLoader);
   
   /**
    * Returns value for a token name.
@@ -5592,8 +6240,8 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    */
   BaseTag.prototype.FILTER_WAIT_TIMEOUT = -1;
   
-  BaseTag.prototype.run = function (ignoreDeps) {
-    if (this.config && this.config.runner) {
+  BaseTag.prototype.run = function () {
+    if (this.config.runner) {
       var ret = false;
       try {
         this.log.INFO("Running custom runner...");
@@ -5606,29 +6254,72 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
       return ret;
     } else {
       this._runner = false;
-      return this.start(ignoreDeps);
+      return this.start();
+    }
+  };
+  
+  /**
+   * If tag has been not yet executed, it may be locked for execution.
+   * Locking execution is kind of middle lock between actually triggering 
+   * final stage of tag and it's filters pass. Tag that filters haven't 
+   * passed will not execute no matter if lock is applied or not.
+   * @returns {undefined}
+   */
+  BaseTag.prototype.lock = function () {
+    this.locked = true;
+    this._unlock = null;
+  };
+  
+  /**
+   * New API.
+   * Function used to unlock the tag. When tag has a property `locked` set to 
+   * true and is not fired yet, running a tag will not has effect untill unlock
+   * method is called on it. It can be called after tag tried to execute.
+   * @returns {undefined}
+   */
+  BaseTag.prototype.unlock = function () {
+    this.locked = false;
+    if (this._unlock) {
+      this._unlock();
+      this._unlock = false;
     }
   };
   
   /**
    * Starter used to run tag. It wraps run function only and is ment to be used
    * in runner function body. See `config.runner` property for more details.
-   * @param {Boolean} ignoreDeps same as oin `run()` method
+   * @param {Boolean} force tag may be disabled, use force to force running.
+   * If tag `'run(true)` is called, private forcing property will be set and 
+   * this method will try to force execution.
    * @returns {undefined}
    */
-  BaseTag.prototype.start = function (ignoreDeps) {
-    return BaseTag.superclass.prototype.run.call(this, ignoreDeps);
+  BaseTag.prototype.start = function () {
+    if (!this.locked) {
+      return BaseTag.superclass.prototype.run.call(this);
+    } else {
+      this.log.WARN("Tag is locked. Running delegated.");
+      this._unlock = function () {
+        return BaseTag.superclass.prototype.run.call(this);
+      }.bind(this);
+      return false;
+    }
   };
 
   /**
    * Starter used to run tag only once. It wraps run function only and is ment
    * to be used in runner function body. See `config.runner` property 
    * for more details.
-   * @param {Boolean} ignoreDeps same as oin `run()` method
    * @returns {undefined}
    */
-  BaseTag.prototype.startOnce = function (ignoreDeps) {
-    return BaseTag.superclass.prototype.runOnce.call(this, ignoreDeps);
+  BaseTag.prototype.startOnce = function () {
+    if (!this.locked) {
+      return BaseTag.superclass.prototype.runOnce.call(this);
+    } else {
+      this._unlock = function () {
+        return BaseTag.superclass.prototype.runOnce.call(this);
+      }.bind(this);
+      return false;
+    }
   };
 
   /**
@@ -5657,7 +6348,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * @returns {BaseFilter.state}
    */
   BaseTag.prototype.runIfFiltersPass = function () {
-    var state = this.filtersState();
+    var state = this.filtersState(true);
     this.addState("FILTER_ACTIVE");
     
     if (!this.filtersRunTriggered) {
@@ -5768,18 +6459,18 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     AWAITING_CALLBACK: 2,
     FILTERS_FAILED: 4,
     STARTED: 8,
-    CANCELLED: 8*2,
-    LOADING_DEPENDENCIES: 16*2,
-    LOADED_DEPENDENCIES: 32*2,
-    LOADING_URL: 64*2,
-    LOADED_URL: 128*2,
-    EXECUTED: 256*2,
-    EXECUTED_WITH_ERRORS: 512*2,
-    FAILED_TO_LOAD_DEPENDENCIES: 1024*2,
-    FAILED_TO_LOAD_URL: 2048*2,
-    FAILED_TO_EXECUTE: 4096*2,
-    TIMED_OUT: 4096*2*2,
-    UNEXPECTED_FAIL: 4096*2*2*2
+    LOADING_DEPENDENCIES: 16,
+    LOADED_DEPENDENCIES: 32,
+    LOADING_URL: 64,
+    LOADED_URL: 128,
+    EXECUTED: 256,
+    EXECUTED_WITH_ERRORS: 512,
+    FAILED_TO_LOAD_DEPENDENCIES: 1024,
+    FAILED_TO_LOAD_URL: 2048,
+    FAILED_TO_EXECUTE: 4096,
+    TIMED_OUT: 4096 * 2,
+    UNEXPECTED_FAIL: 4096 * 2 * 2,
+    CANCELLED: 4096 * 2 * 2 * 2
   };
   
   /**
@@ -5788,7 +6479,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    * of `this.STATE` properties.
    * @param {String} stateName
    */
-  BaseTag.prototype.addState = function(stateName) {
+  BaseTag.prototype.addState = function (stateName) {
     BaseTag.superclass.prototype.addState.call(this, stateName);
 
     try {
@@ -5988,6 +6679,37 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   };
   
   /**
+   * Private method delegating script execution.
+   * When running process executes _scriptExecute, in order:
+   * 
+   * - All dependencies have been met
+   * - onBefore event has been fired
+   * - Script URL has been loaded
+   * - HTML has been injected
+   * 
+   * This is a direct method used to execute `script` function on the loader.
+   * It does check if config containe `script` property and will replace current
+   * `this.script` function with passed configuration. If the `config.script` 
+   * is a string, it will be used to construct function to be run (not eval 
+   * will be run), the functi0on is always executed with tag scope applied.
+   * This function is not intended to be use outside class and therefore is
+   * strictly protected.
+   * @protected
+   */
+  BaseTag.prototype._executeScript = function () {
+    if (this.config && this.config.script) {
+      if (typeof (this.config.script) === "function") {
+        this.script = this.config.script;
+      } else {
+        var expr = this.replaceTokensWithValues(String(this.config.script));
+        this.script = Utils.expressionToFunction(expr).bind(this);
+      }
+    }
+    
+    BaseTag.superclass.prototype._executeScript.call(this);
+  };
+  
+  /**
    * This function is used to replace any string with tokens in it with its 
    * corresponding values. It delegates some of replacement process to 
    * [BaseVariable.prototype.replaceToken](
@@ -6004,14 +6726,16 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     }
     var params = this.parameters;
     
-    if (params) for (var i = 0; i < params.length; i++) {
-      var parameter = params[i];
-      var variable = this.getVariableForParameter(parameter);
-      
-      if (variable) {
-        var token = params[i].token;
-        var value = this.valueForToken(token);
-        string = variable.replaceToken(token, string, value);
+    if (params) {
+      for (var i = 0; i < params.length; i++) {
+        var parameter = params[i];
+        var variable = this.getVariableForParameter(parameter);
+
+        if (variable) {
+          var token = params[i].token;
+          var value = this.valueForToken(token);
+          string = variable.replaceToken(token, string, value);
+        }
       }
     }
     return string;
@@ -6026,9 +6750,11 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   BaseTag.prototype.getParameter = function (name) {
     var params = this.parameters;
     var ret = null;
-    if (params) for (var i = 0; i < params.length; i++) {
-      if (params[i].name === name) {
-        ret = params[i];
+    if (params) {
+      for (var i = 0; i < params.length; i++) {
+        if (params[i].name === name) {
+          ret = params[i];
+        }
       }
     }
     return ret;
@@ -6102,8 +6828,9 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    *  here.
    * @returns {BaseFilter.state}
    */
-  BaseTag.prototype.filtersState = function () {
-    return TagsUtils.filtersState(this.filters, this.session, this);
+  BaseTag.prototype.filtersState = function (runLastSessionFIlterIfPresent) {
+    var run = runLastSessionFIlterIfPresent;
+    return TagsUtils.filtersState(this.filters, this.session, this, run);
   };
   
   /**
@@ -6177,6 +6904,8 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   var _counter_tag_map = 0;
   var tags = [];
   var tagAccessorsMap = {};
+  var UNIQUE_REF = {};
+  
   /**
    * Method used to register a qubit.opentag.BaseTag in a global array.
    * It is quite useful to hav reference to all Tag instances. Each BaseTag
@@ -6198,7 +6927,29 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     } else {
       tag._tagIndex = index;
     }
+    if (tag.config.id) {
+      var str = "Q" + tag.config.id;
+      UNIQUE_REF[str] = tag;
+      tag.uniqueId = str;
+    }
   };
+  
+  /**
+   * @static
+   * Get tag by its unique ID.
+   * @param {String} id unique Id, it is the 'uniqueId` property - if set.
+   * @returns {qubit.opentag.BaseTag} tag instance
+   */
+  BaseTag.getById = function (id) {
+    return UNIQUE_REF[String(id)];
+  };
+  
+  /**
+   * Get tag by its unique ID.
+   * @param {String} id unique Id, it is the 'uniqueId` property - if set.
+   * @returns {qubit.opentag.BaseTag} tag instance
+   */
+  BaseTag.prototype.getById = BaseTag.getById;
   
   /**
    * Use this function to unregister this tag from the registry.
@@ -6329,11 +7080,9 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    */ 
   BaseTag.prototype.getVariableForParameter = function (param) {
     var variable = TagHelper.validateAndGetVariableForParameter(param);
-
-    if (variable && !variable.config.empty) {
-      //if exists and is not empty variable
-      //ignore parameter has own variable
-    } else if (this.namedVariables && this.namedVariables[param.token]) {
+    var existAndIsNotEmpty = variable && !variable.config.empty;
+    if (!existAndIsNotEmpty && 
+            (this.namedVariables && this.namedVariables[param.token])) {
       //@todo clean it up
       //use alternative value
       variable = _getSetNamedVariable(this, param.token);
@@ -6370,7 +7119,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         val = this.valueForToken(param.token);
       } else {
         val = variable.getRelativeValue(true);
-      };
+      }
       
       var tmp = {
         name: variable.config.name,
@@ -6379,6 +7128,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
         value: val,
         variable: variable
       };
+      
       res.push(tmp);
       
       /*log*/
@@ -6407,14 +7157,86 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     var variable = TagHelper.initPageVariable(tag.namedVariables[token]);
     tag.namedVariables[token] = variable;
     return variable;
+  }
+  
+  BaseTag.prototype._getUniqueId = function () {
+    var id = this.config.name;
+    if (this.config.id) {
+      id = this.config.id;
+    }
+    return id;
+  };
+  
+  var cookiePrefix = "qubit.tag.forceRunning_";
+  var cookieRunAll = "qubit.tag.forceAllToRun";
+  
+  BaseTag.prototype.cookieSaysToRunEvenIfDisabled = function () {
+    var id = this._getUniqueId();
+    var ret = !!qubit.Cookie.get(cookieRunAll);
+    if (!ret) {
+      ret = !!qubit.Cookie.get(cookiePrefix + id);
+    }
+    return ret;
+  };
+  
+  /**
+   * Sets a cookie that will make container running this tag and ignoring  
+   * tag's disabled state (so it will be run by container as normal).
+   * To clear the cookie - use `rmCookieForcingTagToRun()`.
+   */
+  BaseTag.prototype.setCookieForcingTagToRun = function () {
+    var id = this._getUniqueId();
+    qubit.Cookie.set(cookiePrefix + id, "true");
+  };
+  
+  /**
+   * Sets global cookie that make any container ignoring this tag's 
+   * disabled state so this tag will be run as normal.
+   * To clear cookie set by this method, use `rmCookieForcingTagsToRun()`.
+   */
+  BaseTag.setCookieForcingTagsToRun = function () {
+    qubit.Cookie.set(cookieRunAll, "true");
+  };
+  
+  /**
+   * This method clears the cookie set by 
+   * `setCookieForcingTagsToR`setCookieForcingTagsToRun()`.
+   */
+  BaseTag.rmCookieForcingTagsToRun = function () {
+    qubit.Cookie.rm(cookieRunAll);
+  };
+  
+  /**
+   * This function clears cookie set for this tag by 
+   * `setCookieForcingTagToRun()`.
+   */
+  BaseTag.prototype.rmCookieForcingTagToRun = function () {
+    var id = this._getUniqueId();
+    qubit.Cookie.rm(cookiePrefix + id);
+  };
+  
+  /**
+   * Removes all possible cookies that force any disabled tags to run.
+   * It clears all cookies set by any instance of tag with 
+   * `setCookieForcingTagToRun()` and cookie set with 
+   * `setCookieForcingTagsToRun()`.
+   */
+  BaseTag.rmAllCookiesForcingTagToRun = function () {
+    var cookies = qubit.Cookie.getAll();
+    for (var i = 0; i < cookies.length; i++) {
+      var name = cookies[i][0];
+      if (name.indexOf(cookiePrefix) === 0) {
+        qubit.Cookie.rm(name);
+      }
+    }
+    BaseTag.rmCookieForcingTagsToRun();
   };
 }());
 
 
 
 
-(function(){
-  var Utils = qubit.opentag.Utils;
+(function () {
   var log = new qubit.opentag.Log("Tags -> ");
   
   /**
@@ -6425,7 +7247,17 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    */
   var Tags = function () {};
 
-  Utils.clazz("qubit.opentag.Tags", Tags);
+  qubit.Define.clazz("qubit.opentag.Tags", Tags);
+  
+  /**
+   * @static
+   * Get tag by its unique ID.
+   * @param {String} id unique Id, on  tag it is 'uniqueId` property - if set.
+   * @returns {qubit.opentag.BaseTag} tag instance
+   */
+  Tags.getById = function (id) {
+    return qubit.opentag.BaseTag.getById(String(id));
+  };
 
   /**
    * Returns all tags grouped by logical state, it collects ALL tags from ALL
@@ -6444,7 +7276,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   Tags.findTagByName = function (match) {
     var tags = this.getTags();
     var results = [];
-    for(var i = 0; i < tags.length; i++) {
+    for (var i = 0; i < tags.length; i++) {
       if (tags[i].config.name === match) {
         results.push(tags[i]);
       }
@@ -6460,7 +7292,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   Tags.findTagByMatch = function (match) {
     var tags = this.getTags();
     var results = [];
-    for(var i = 0; i < tags.length; i++) {
+    for (var i = 0; i < tags.length; i++) {
       if (tags[i].config.name.match(match)) {
         results.push(tags[i]);
       }
@@ -6498,7 +7330,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   Tags.getContainersPageVariables = function () {
     var containers = Tags.getContainers();
     var vars = [];
-    for(var i =0; i < containers.length; i++) {
+    for (var i = 0; i < containers.length; i++) {
       vars = vars.concat(containers.getPageVariables());
     }
     return vars;
@@ -6511,7 +7343,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   Tags.getAllPageVariables = function () {
     var tags = Tags.getTags();
     var vars = [];
-    for(var i = 0; i < tags.length; i++) {
+    for (var i = 0; i < tags.length; i++) {
       vars = vars.concat(tags[i].getPageVariables());
     }
     return vars;
@@ -6519,11 +7351,11 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
 
   /**
    * @static
-   * Cancell all tags.
+   * Cancel all tags.
    */
   Tags.cancelAll = function () {
     var tags = Tags.getTags();
-    for(var i = 0; i < tags.length; i++) {
+    for (var i = 0; i < tags.length; i++) {
       tags[i].cancel();
     }
   };
@@ -6534,7 +7366,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
    */
   Tags.resetAll = function () {
     var tags = Tags.getTags();
-    for(var i = 0; i < tags.length; i++) {
+    for (var i = 0; i < tags.length; i++) {
       tags[i].reset();
     }
   };
@@ -6596,13 +7428,13 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     var array = tags instanceof Array;
     
     if (array) {
-      for(var i = 0; i < tags.length; i++) {
+      for (var i = 0; i < tags.length; i++) {
         if (tags[i] instanceof qubit.opentag.BaseTag) {
           ret.push(Tags.getLoadTime(tags[i]));
         }
       }
     } else {
-      for(var prop in tags) {
+      for (var prop in tags) {
         if (tags[prop] instanceof qubit.opentag.BaseTag) {
           ret.push(Tags.getLoadTime(tags[prop]));
         }
@@ -6610,7 +7442,25 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
     }
     return ret;
   };
-    
+  
+  /**
+   * Function will enable all disabled container and all disabled tags in 
+   * browser to ignore the disabled flag.
+   */
+  Tags.forceAllContainersAndTagsToRunIfDisabled = function () {
+    qubit.opentag.Container.setCookieForDisabledContainersToRun();
+    qubit.opentag.BaseTag.setCookieForcingTagsToRun();
+  };
+  
+  /**
+   * Function will clear all cookies that were set to force disabled tags
+   * and disabled containers to run.
+   * See `forceAllContainersAndTagsToRunIfDisabled` for more details.
+   */
+  Tags.rmAllContainersAndTagsForcingFlags = function () {
+    qubit.opentag.Container.rmCookieForDisabledContainersToRun();
+    qubit.opentag.BaseTag.rmAllCookiesForcingTagToRun();
+  };
   
   /**
    * Containers getter.
@@ -6622,7 +7472,7 @@ q.html.simplecookie.writeCookie = function (name, value, days, domain) {
   };
   
   log.INFO("*** Qubit TagSDK *** ", true,
-           "font-size: 22px; color:#CCC;"+//L
+           "font-size: 22px; color:#CCC;" + //L
            "text-shadow:#fff 0px 1px 0, #555 0 -1px 0;");//L
 })();
 
@@ -6742,7 +7592,6 @@ q.html.PostData = function (url, data, type) {
 
 (function () {
   
-  var Utils = qubit.opentag.Utils;
   var log = new qubit.opentag.Log("Ping -> ");
   
   /**
@@ -6753,7 +7602,7 @@ q.html.PostData = function (url, data, type) {
    */
   function Ping() {}
 
-  Utils.clazz("qubit.opentag.Ping", Ping);
+  qubit.Define.clazz("qubit.opentag.Ping", Ping);
   
   /**
    * Function sends ping information to the servers.
@@ -6773,7 +7622,13 @@ q.html.PostData = function (url, data, type) {
     for (var i = 0; i < loadTimes.length; i++) {
       var tag = loadTimes[i].tag;
       var loadTime = loadTimes[i].loadTime;
-      var loaderId = tag.config.ID;
+      
+      if (loadTime === null || isNaN(loadTime)) {
+        //ignore unset load time entries.
+        continue;
+      }
+      
+      var loaderId = tag.config.id;
       
       if (!tag.pingSent && loaderId && loadTime !== null) {
         if (loaderId !== undefined) {
@@ -6787,8 +7642,8 @@ q.html.PostData = function (url, data, type) {
         log.FINEST("send: ping already sent for `" + tag.config.name +
                 "`, ignoring.");//L
       } else if (loadTime === null) {
-        log.FINEST("send:tried to send null load times for `" +
-                tag.config.name + "`, ignoring.");//L
+        log.FINEST("send: null load times for `" +
+                tag.config.name + "`, ignoring (ping not sent).");//L
       }
     }
         
@@ -6857,7 +7712,7 @@ q.html.PostData = function (url, data, type) {
 
     for (var i = 0; i < tags.length; i++) {
       var tag = tags[i];
-      var loaderId = tag.config.ID;
+      var loaderId = tag.config.id;
 
       if (loaderId === undefined) {
         log.WARN("sendDedupe: tag `" + tag.config.name +
@@ -6884,8 +7739,9 @@ q.html.PostData = function (url, data, type) {
   };
   
   /*~session*/
-  }());
+}());
 /*EXCLUDE: SESSION*/
+
 
 
 q.cookie.SimpleSessionCounter = {};
@@ -6894,12 +7750,8 @@ q.cookie.SimpleSessionCounter._cookieName = "_qst_s";
 q.cookie.SimpleSessionCounter._sessionCookie = "_qsst_s";
 q.cookie.SimpleSessionCounter.update = function (domain) {
   var c, s, ga, mins = 30;
-  c = q.html.simplecookie.readCookie(
-    q.cookie.SimpleSessionCounter._cookieName
-  );
-  s = q.html.simplecookie.readCookie(
-    q.cookie.SimpleSessionCounter._sessionCookie
-  );
+  c = qubit.Cookie.get(q.cookie.SimpleSessionCounter._cookieName);
+  s = qubit.Cookie.get(q.cookie.SimpleSessionCounter._sessionCookie);
   if (!c) {
     c = 1;
   } else {
@@ -6908,9 +7760,8 @@ q.cookie.SimpleSessionCounter.update = function (domain) {
       c += 1;
     }
   }
-  q.html.simplecookie.writeCookie(q.cookie.SimpleSessionCounter._cookieName, 
-      c, 365, domain);
-  q.html.simplecookie.writeCookie(q.cookie.SimpleSessionCounter._sessionCookie, 
+  qubit.Cookie.set(q.cookie.SimpleSessionCounter._cookieName, c, 365, domain);
+  qubit.Cookie.set(q.cookie.SimpleSessionCounter._sessionCookie, 
     new Date().getTime().toString(), null, domain);
   return c;
 };
@@ -7421,7 +8272,887 @@ var JSON = {};
         };
     }
 }());
+
+
+////Author Peter Fronc
+// UTF supported.
+
+
+(function () {
+
+  var defaultAlphabet = [];
+  //"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~_.-*()'!%"
+  //.split("");//[];
+
+  var len = Math.pow(2, 8);//256
+  for (var c = 0; c < len; c++) {
+    defaultAlphabet.push(String.fromCharCode(c));
+  }
+
+//dictionary
+  var xdict = {};
+  for (var i = 0; i < defaultAlphabet.length; i++) {
+    xdict[defaultAlphabet[i]] = i;
+  }
+
+  var Define = qubit.Define;
+  
+  /**
+   * @class qubit.compression.LZW
+   * 
+   * LZW algorithm implementation.
+   * Each instance must receive config object, ehich accepts optional options:
+   * 
+   * alphabet: property, if set will override default alphabet array. alphabet
+   *  must be char array used to code strings. Note, if strings contain 
+   *  characters that are not in alphabet - LZW will throw exception.
+   * 
+   * @param {Object} config
+   */
+  function LZW(config) {
+    if (config) {
+      if (config.alphabet) {
+        this.alphabet = config.alphabet;
+        this.dict = {};
+        for (var i = 0; i < this.alphabet.length; i++) {
+          this.dict[this.alphabet[i]] = i;
+        }
+      } else {
+        this.alphabet = defaultAlphabet;
+        this.dict = xdict;
+      }
+    }
+  }
+
+  Define.clazz("qubit.compression.LZW", LZW);
+
+  /**
+   * Function encoding string to LZW numbers array.
+   * @param {String} string
+   * @returns {Array} array of numbers.
+   */
+  LZW.prototype.encode = function (string) {
+    var dictsize = this.alphabet.length;
+    var extDict = {};
+    var results = [];
+    var index = 0;
+    var curr = string.charAt(index++);
+    var next;
+    var dict = this.dict;
+
+    while (!!(next = string.charAt(index++))) {
+      var newWord = curr + next;
+      if (dict.hasOwnProperty(newWord) || extDict.hasOwnProperty(newWord)) {
+        curr = newWord;
+      } else {
+        var val = dict.hasOwnProperty(curr) ? dict[curr] : extDict[curr];
+        if (val === undefined) {
+          throw "Dictionary base is to small for those contents: " + curr;
+        }
+        results.push(val);
+        extDict[newWord] = dictsize++;
+        curr = next;
+      }
+    }
+
+    if (curr !== "") {
+      results.push(extDict.hasOwnProperty(curr) ? extDict[curr] : dict[curr]);
+    }
+
+    return results;
+  };
+
+  /**
+   * Function decodes the LZW array to a astring.
+   * @param {Array} codes array of LZW numbers to decode
+   * @returns {String} decoded string
+   */
+  LZW.prototype.decode = function (codes) {
+    var dict = this.dict;
+    var dictSize = this.alphabet.length;
+    var chunk;
+    var locdict = {};
+    var prevChar = getFromDict(codes[0], dict);
+    var prevChunk = prevChar;
+    var results = [prevChar];
+
+    for (var i = 1; i < codes.length; i++) {
+      //recovering encoding, we must get chunk and add dictionary word
+      var currentCode = codes[i];
+      chunk = getFromDict(currentCode, dict);
+
+      if (chunk === null) {
+        //well, check if in recovered dictionary
+        if (locdict.hasOwnProperty(currentCode)) {
+          chunk = locdict[currentCode];
+        }
+        if (chunk === null) {
+          //if not in both, but we know it had to be there, means
+          //was added in "last step" - so it is last word + the character
+          //
+          chunk = prevChunk + prevChar;
+        }
+      }
+      //add chunk
+      results.push(chunk);
+
+      //add dictionary asssigned
+      //previous char now is known, its current chunk first char (previous
+      //chunk when added, added dictionary word, we add it now, step later)
+      prevChar = chunk.charAt(0);
+      //recreate dict
+      locdict[dictSize++] = prevChunk + prevChar;
+      prevChunk = chunk;
+    }
+    return results.join("");
+  };
+
+  function getFromDict(code, dict) {
+    for (var p in dict) {
+      if (code === dict[p]) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+}());
+
+
+
+(function () {
+  //mex is manual "hex"
+  
+  var mex = "abcdefghijklmnopqrstuvwxyz" + "0123456789" + "'%./:<>?[";
+  var Umex = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "*!-+()@{|}" + "\"]^_`~$&#";
+  var mexMap = {};
+  
+  for (var c = 0; c < mex.length; c++) {
+    mexMap[mex.charAt(c)] = c;
+  }
+  
+  var UmexMap = {};
+  for (var ii = 0; ii < mex.length; ii++) {
+    UmexMap[Umex.charAt(ii)] = ii;
+  }
+  
+  var UmexToMexMap = {};
+  for (var iii = 0; iii < mex.length; iii++) {
+    UmexToMexMap[mex.charAt(iii)] = Umex.charAt(iii);
+  }
+  
+  var mnums = mex.split("");
+  var maxMnum = mnums.length;
+  
+  function converToMex(number) {
+    var rest = 0;
+    var minus = number < 0;
+    
+    if (minus) {
+      number = -number;
+    }
+    
+    var newNum = "";
+    var first = true;
+    
+    do {
+      rest = number % maxMnum;
+      if (first) {
+        newNum = UmexToMexMap[mnums[rest]];
+        first = false;
+      } else {
+        newNum = mnums[rest] + newNum;
+      }
+      number = (number - rest) / maxMnum;
+    } while (number > 0);
+    if (minus) {
+      return "-" + newNum;
+    }
+    return newNum;
+  }
+  
+  function convertFromMex(mexNum) {
+    var newNum = 0;
+    var pow = 0;
+    var first = true;
+    for (var i = 0; i < mexNum.length; i++) {
+      var cur = mexNum.charAt(mexNum.length - 1 - i);
+      if (first) {
+        first = false;
+        cur = mex.charAt(UmexMap[cur]);
+      }
+      newNum += mexMap[cur] * Math.pow(maxMnum, pow++);
+    }
+    return newNum;
+  }
+  
+  var lzw = new qubit.compression.LZW({});
+  
+  var Define = qubit.Define;
+  
+  /**
+   * @class qubit.compression.Compressor
+   * Compressor class.
+   * @param {Object} config - unused.
+   */
+  function Compressor(config) {
+  }
+
+  Define.clazz("qubit.compression.Compressor", Compressor);
+
+  /**
+   * Compression function used to compress string with binary output in UTF
+   * form.
+   * @param {String} string
+   * @param {qubit.compression.LZW} lz optional LZW instance. Use it to pass 
+   *    custom LZW instance.
+   * @returns {String} compressed string in binary UTF coded form.
+   */
+  Compressor.prototype.compress = function (string, lz) {
+    var array = (lz || lzw).encode(string);
+    var result = [];
+
+    for (var i = 0; i < array.length; i++) {
+      result.push(String.fromCharCode(array[i]));
+    }
+    return result.join("");
+  };
+  
+  /**
+   * Function used to compress content and with custom encoding output coded
+   * with characters set from 45 locang character array. All characters are 
+   * plain ANSI C types. This compression has worse performance than binary 
+   * and for short string will be as goog as 2x larger than binary output.
+   * For very short strings it can be even longer than source.
+   * Advantage of this compressor is that its output is ANSI C coded.
+   * 
+   * @param {String} string string to be compressed
+   * @param {qubit.compression.LZW} lz optional LZW instance to be used.
+   * @returns {String}
+   */
+  Compressor.prototype.compressAnsi = function (string, lz) {
+    var array = (lz || lzw).encode(string);
+    var result = [];
+
+    for (var i = 0; i < array.length; i++) {
+      var num = converToMex(array[i]);
+      result.push(num);
+    }
+    return result.join("");
+  };
+  
+  /**
+   * Function used to decompress `compressAnsi()` function output strings.
+   * @param {String} code compressed string
+   * @param {qubit.compression.LZW} lz optional LZW instance to be used.
+   * @returns {String} decompressed string
+   */
+  Compressor.prototype.decompressAnsi = function (code, lz) {
+    var array = [];
+    var curr = "";
+    for (var i = 0; i < code.length; i++) {
+      var ch = code.charAt(i);
+      if (UmexMap.hasOwnProperty(ch)) {
+        var num = curr + ch;
+        curr = "";
+        num = convertFromMex(num);
+        array.push(num);
+      } else {
+        curr += ch;
+      }
+    }
+    return (lz || lzw).decode(array);
+  };
+  /**
+   * Function will decopmress compressed string by `compress()` function.
+   * 
+   * @param {String} code compressed string
+   * @param {qubit.compression.LZW} lz optional LZW instance to be used.
+   * @returns {String} decompressed string
+   */
+  Compressor.prototype.decompress = function (code, lz) {
+    var array = [];
+    for (var i = 0; i < code.length; i++) {
+      array.push(code.charCodeAt(i));
+    }
+    return (lz || lzw).decode(array);
+  };
+  
+}());
+
+
+
+
+(function () {
+  var Define = qubit.Define;
+  var Cookie = qubit.Cookie;
+  
+  //order matters!
+  //make sure that replacement char does not equal to first character of
+  //any coded words!
+  //Escape character used in encoder: *
+  //exclude also: _, N, +, *, T, Q staring from - or number
+  //number dash codes are SPECIAL.
+  var definitions = [
+    ['","referrer":[{"url":"http://', "1-"],
+    ['","referrer":[{"url":"https://', "2-"],
+    [',"referrer":[{"url":"http://', "3-"],
+    [',"referrer":[{"url":"https://', "4-"],
+    [',"sessionStartTime":', "5-"],
+    ["www.google.co.uk",   "6-"],
+    ["www.google.",   "7-"],
+    ["\"sessionStartTime\":",  "8-"],
+    ["\"landing\":\"",   "9-"],
+    ["http%3A%2F%2Fwww",  "10-"],
+    ["\"landing\":",   "L"],
+    ["\"time\":",   "A"],
+    ["\"pageViews\":",  "P"],
+    ["\"sessionCount\":",  "B"],
+    ["\"referrer\":",  "R"],
+    ["\"url\":\"http://www.",  "J"],
+    ["\"url\":\"https://www.",  "M"],
+    ["\"url\":\"",   "I"],
+    ["\"url\":",   "U"],
+    ["http://www.",   "W"],
+    ["https://www.",   "V"],
+    ["%2Fen%2Ftsuk%2F",  "K"],
+    ["\"sessionLandingPage\":",  "F"],
+    ["http%3A%2F%2F",  "D"],
+    ["http://",   "H"],
+    ["https://",   "X"],
+    ["\"\"",  "O"],
+    ["\",",  "Y"],
+    ['":{}}', "z"],
+    ["<", "S"],
+    [">", "G"],
+    ["[", "Z"],
+    ["]", "E"],
+    ["{", "a"],
+    ["}", "b"],
+    ["(", "c"],
+    [")", "d"],
+    ["!", "e"],
+    ["#", "f"],
+    ["$", "g"],
+    ["!", "q"],
+    ["'", "i"],
+    [":", "j"],
+    ["?", "k"],
+    ["^", "x"],
+    ["`", "m"],
+    ["|", "n"],
+    ["~", "o"],
+    ["%", "v"],
+    [",", "C"]
+  ];
+  
+  function prepareDefinitions(array) {
+    var definitions = [];
+    for (var i = 0; i < array.length; i++) {
+      var preparedString = escapeRegExp(array[i][0]);
+      definitions.push([new RegExp(preparedString, "g"), "*" + array[i][1]]);
+    }
+    return definitions;
+  }
+  
+  function getDefinitionByChar(ch, definitions) {
+    for (var i = 0; i < definitions.length; i++) {
+      if (definitions[i][1] === ch) {
+        return definitions[i][0];
+      }
+    }
+    return null;
+  }
+  
+  var regexDefinitions = prepareDefinitions(definitions);
+  
+  /**
+   * @class qubit.opentag.compression.Encoder
+   * 
+   * Opentag session cookie encoding class. It is used instead of 
+   * encodeURIComponent/escape functions.
+   * It has much shorter output than standard encoders.
+   * It also encodes common names found in session JSON object.
+   * 
+   * @param {Object} config standard config object to construct instance.
+   *        Empty.
+   */
+  function Encoder(config) {
+    /**
+     * @cfg {Array} definitions Array of definition arrays. Eachy element
+     * is an array containing RegExp instance and replacement string.
+     * This array is used as addition to decode strings.
+     * By default it is opentag session object optimized.
+     * Definitions rules: 
+     * 
+     *    1) replacement string starts with \
+     *    2) Next character is a single value
+     *    3) The character cannot be first char of any words from definitions
+     *    4) No numbers can be used or a dot (reserved for UTF)
+     * 
+     */
+    this._regexDefs = regexDefinitions;
+    this._defs = definitions;
+    
+    if (config) {
+      if (config.definitions) {
+        this._regexDefs = prepareDefinitions(config.definitions);
+        this._defs = config.definitions;
+      }
+    }
+  }
+  
+  Define.clazz("qubit.opentag.compression.Encoder", Encoder);
+  
+  /**
+   * Function is a custom encoding function with specific support for 
+   * opentag session object.
+   * @param {String} string to encode
+   * @param {Boolean} limitUTFRange if true, utf range will be limited to value
+   *                  specified.
+   * @returns {String} encoded string. 
+   */
+  Encoder.prototype.encode = function encode(string, limitUTFRange) {
+    // one rule: 
+    // replacement char cannot be first char of any words and
+    // no numbers or dot!!!
+    var ret = string.replace(/\*/g, "**");
+    var ininitalDdict = dynamicDictionary(ret);
+    
+    for (var i = 0; i < this._regexDefs.length; i++) {
+      var pair = this._regexDefs[i];
+      ret = ret.replace(pair[0], pair[1]);
+    }
+    
+    //a must section, normally first, but ist safer to do it fater dictionary as
+    //can be changed by developer.
+    //@TODO move those to the dictionary... 
+    ret = ret.replace(/;/g, "*-");
+    ret = ret.replace(/&/g, "*.");
+    ret = ret.replace(/\\/g, "*/");
+    ret = ret.replace(/=/g, "*+");
+    ret = ret.replace(/\n/g, "*N");
+    ret = ret.replace(/ /g, "*_");
+    ret = ret.replace(/\t/g, "*T");
+    ret = ret.replace(/"/g, "*Q");
+    
+    //test server with
+    // document.cookie=
+    // 'x="abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' + 
+    // '*!-#$+()@\'%./:<>?[]^_`{|}~"'
+     
+    //start searching for interesting keywords now
+    var ddict = dynamicDictionary(ret);
+    ddict.concat(ininitalDdict);
+    // actually space is fine, just trimming occurs
+    // run dictionary before possible UTF, there ius not conflict as UTF method
+    // will ignore standard characters used by dictionaries
+    var result = replaceWithDynamicDictionary(ddict, ret);
+    var actualDict = result[1];
+    var replacementsOccured = actualDict.length > 0;
+    
+    if (replacementsOccured) {
+      ret = result[0];
+    }
+    
+    //utf section
+    if (!limitUTFRange) {
+      ret = replaceWithUTFEncoding(ret);
+    } else {
+      ret = replaceWithUTFEncoding(ret, limitUTFRange);
+    }
+    
+    if (replacementsOccured) {
+      return "Y" + actualDict.join("*") + "@" + ret;
+    } else {
+      return "N" + ret;
+    }
+  };
+  
+  function replaceWithUTFEncoding(string, range) {
+    var rewrite = [];
+    for (var i = 0; i < string.length; i++) {
+      var inRange = true;
+      if (range) {
+        inRange = string.charCodeAt(i) <= range;
+      }
+      var inCookieAlphabet = Cookie.cookieAlphabetMap
+              .hasOwnProperty(string.charAt(i));
+      if (inRange && !inCookieAlphabet) {
+        rewrite.push("*" + string.charCodeAt(i) + ".");
+      } else {
+        rewrite.push(string.charAt(i));
+      }
+    }
+    return rewrite.join("");
+  }
+  
+  /*
+   * Private wrapper over Dynamic words replaced.
+   */
+  function replaceWithDynamicDictionary(ddict, string) {
+    string = string.replace(/@/g, "@@");
+    var dict = [];
+    for (var i = 0, j = 0; i < ddict.length; i++) {
+      //new regex is expensive operation
+      var pattern = ddict[i][0];
+      var rx = new RegExp(escapeRegExp(pattern), 'g');
+      var out = string.replace(rx, "@" + j + "-");
+      if (out !== string) {
+        dict.push(ddict[i][0]);
+        j++;
+        string = out;
+      }
+    }
+    return [string, dict];
+  }
+  
+  function escapeRegExp(string) {
+    return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+  }
+  
+  //"abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ*-+@./_"
+  var dynamicDictChars = 
+    "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+_.";
+  var dynamicDictCharsMap = {};
+  for (var i = 0; i < dynamicDictChars.length; i++) {
+    dynamicDictCharsMap[dynamicDictChars.charAt(i)] = true;
+  }
+  
+  var MIN_WORD_LEN = 4;
+  var MIN_OCCURENCE_LEN = 2;
+  function dynamicDictionary(str) {
+    var parts = {};
+    var word = "";
+    for (var i = 0; i < str.length; i++) {
+      var ch = str.charAt(i);
+      if (!dynamicDictCharsMap[ch]) {
+        if (isNaN(parts[word])) {
+          parts[word] = str.split(word).length - 1;
+        }
+        word = "";
+      } else {
+        word += ch;
+      }
+    }
+    var dict = [];
+    for (var prop in parts) {
+      if (parts.hasOwnProperty(prop)) {
+        var occurringNum = parts[prop];
+        if (occurringNum >= MIN_OCCURENCE_LEN && prop.length >= MIN_WORD_LEN) {
+          dict.push([prop, occurringNum]);
+        }
+      }
+    }
+    //@todo, make this function more sophisticated, use multiple + one word len
+    //instead of just len
+    dict = dict.sort(function (a, b) {
+      if (a[0].length === b[0].length) {
+        return 0;
+      }
+      if (b[0].length > a[0].length) {
+        return 1;
+      } else {
+        return -1;
+      }
+    });
+
+    return dict;
+  }
+  
+  /**
+   * Decoding function of this encoder.
+   * 
+   * @param {String} string to decode
+   * @returns {String} decoded string
+   */
+  Encoder.prototype.decode = function (string) {
+    var ddict = null;
+    if (string.charAt(0) === "N") {
+      string = string.substring(1);
+    } else if (string.charAt(0) === "Y") {
+      var qMkIdx = string.indexOf("@");
+      if (qMkIdx >= 0) {
+        ddict = string.substring(1, qMkIdx);
+        ddict = ddict.split("*");
+        string = string.substring(qMkIdx + 1);
+        //decode only if there was dynamic encoding
+        string = decodeDynamicDictionary(string, ddict);
+      }
+    }
+    
+    var ret = "";
+    var codeWord = false;
+    var collectingNum = false;
+    var utfNum = "";
+    for (var i = 0; i < string.length; i++) {
+      var ch = string.charAt(i);
+      if (ch === "*" || codeWord || collectingNum) {
+        if (codeWord || collectingNum) {
+          codeWord = false;
+          
+          if (!isNaN(+("-" + ch))) {
+            // utf code or ext dict, collect number
+            utfNum = utfNum + ch;
+            collectingNum = true;
+          } else if (collectingNum) {
+            //was collecting number  till now
+            if (ch === ".") {
+              //utf case
+              ret += String.fromCharCode(+utfNum);
+            } else if (ch === "-" &&
+                    getDefinitionByChar(utfNum + "-", this._defs)) {
+              //ext dict case
+              ret += getDefinitionByChar(utfNum + "-", this._defs);
+            } else {
+              //unrecognised, dump as was
+              ret += "*" + utfNum + ch;
+            }
+            utfNum = "";
+            collectingNum = false;
+          } else if (ch === "*") {
+            ret += "*";
+          } else if (ch === "-") {
+            ret += ";";
+          } else if (ch === "/") {
+            ret += "\\";
+          } else if (ch === ".") {
+            ret += "&";
+          } else if (ch === "+") {
+            ret += "=";
+          } else if (ch === "N") {
+            ret += "\n";
+          } else if (ch === "_") {
+            ret += " ";
+          } else if (ch === "T") {
+            ret += "\t";
+          } else if (ch === "Q") {
+            ret += "\"";
+          } else if (getDefinitionByChar(ch, this._defs) !== null) {
+            //any other chars are in the dictionary
+            var def = getDefinitionByChar(ch, this._defs);
+            ret += def;
+          } else {
+            //unrecognised! dump as was
+            ret += "*" + ch;
+          }
+        } else {
+          codeWord = true;
+        }
+      } else {
+        ret += ch;
+      }
+    }
+    if (utfNum) {
+      //last utfNum collection was uncleared! bring it back
+      ret += "*" + utfNum;
+    }
+    if (codeWord) {
+      //flush empty fflash
+      ret += "*";
+    }
+    return ret;
+  };
+  
+  //some cleanups needed.
+  function decodeDynamicDictionary(string, ddict) {
+    if (!ddict || ddict.length === 0 || !string) {
+      return string;
+    }
+    var ret = "";
+    var codeWord = false;
+    var collectingNum = false;
+    var codeNum = "";
+    for (var i = 0; i < string.length; i++) {
+      var ch = string.charAt(i);
+      
+      if (ch === "@" || codeWord || collectingNum) {
+        if (codeWord || collectingNum) {
+          codeWord = false;
+          
+          if (ch === "@") {
+            ret += "@";
+          } else  if (!isNaN(+("-" + ch))) {
+            // dynamic dictionary code
+            collectingNum = true;
+            codeNum = codeNum + ch;
+          } else {
+            if (collectingNum) {
+              if (ddict && ch === "-" && ddict[+codeNum]) {
+                //dictionary code case
+                ret += ddict[+codeNum];
+              } else {
+                //unrecognised, dump as is
+                ret += "@" + codeNum + ch;
+              }
+              codeNum = "";
+              collectingNum = false;
+            } else {
+              //not a code! dump as was
+              ret += "@" + ch;
+            }
+          }
+        } else {
+          codeWord = true;
+        }
+      } else {
+        ret += ch;
+      }
+    }
+    if (codeNum) {
+      //last codeNum collection was uncleared! bring it back
+      ret += "@" + codeNum;
+    }
+    if (codeWord) {
+      //flush empty fflash
+      ret += "@";
+    }
+    return ret;
+  }
+  
+})();
+
+
+
+
+
+
+(function () {
+  var Define = qubit.Define;
+  var Cookie = qubit.Cookie;
+  var log = new qubit.opentag.Log("CookieCompressor -> ");
+  
+  //var global = Define.global();
+  var binSupported = false;
+  //some servers are very bad. must be manually permitted.
+  //!!global.chrome || (global.mozIndexedDB !== undefined);
+  /**
+   * @class qubit.opentag.compression.Cookiecompressor
+   * 
+   * Cookie compressor class. 
+   * This class is used to compress opentag session cookie.
+   * 
+   * @param {Object} config standard config object to construct instance.
+   *        Empty.
+   */
+  function CookieCompressor(config) {
+    this.testBinary = false;
+    this.binSupported = binSupported;
+    
+    if (config) {
+      log.FINEST("Created compressor instance.");
+      /**
+       * @property {qubit.compression.Compressor} compressor 
+       * instance used for compression and decompression.
+       */
+      this.compressor = new qubit.compression.Compressor();
+      /**
+       * @property {qubit.opentag.compression.Encoder} encoder instance used
+       * for encodeing and decoding strings.
+       */
+      this.encoder = new qubit.opentag.compression.Encoder({});
+    }
+  }
+
+  Define.clazz("qubit.opentag.compression.CookieCompressor", CookieCompressor);
+  
+  /**
+   * Function will compress a string that can be saved as cookie.
+   * It also encodes string and makes sure that can be saved as cookie.
+   * 
+   * It will return string that is a binary content whenever full utf writing 
+   * content is successful in the environment (it will be tested for even 
+   * those that are not).
+   * 
+   * It is VERY inneficient to use encodeURIComponent together with this 
+   * function. This function already provides encoded string and extra encoding
+   * will cause waste of text space.
+   * 
+   * @param {String} string
+   * @param {Boolean} forceCompression if true, C type compression will be 
+   * enforced. C type compression occures when two conditions occure:
+   * 
+   *    1) it pays off - output is smaller than encoded input)
+   * 
+   *    2) binary save is not possible
+   * 
+   * @returns {String} compressed string
+   */
+  CookieCompressor.prototype.compress = function (string, forceCompression) {
+    if (typeof(string) !== "string" || string === "") {
+      return string;
+    }
+    log.FINEST("Compressing...");
+    var encoded = this.encoder.encode(string);
+    
+    var binOut;
+    if (this.binSupported || this.testBinary) {
+      var bin = this.compressor.compress(encoded);
+      binOut =  "\"B" + this.encoder.encode(bin, 128) + "\"";
+      
+      Cookie.set("__qtag_test_bin__", binOut, undefined, undefined, true);
+      var o = Cookie.get("__qtag_test_bin__", true);
+      Cookie.rm("__qtag_test_bin__");
+      
+      if (o && o !== binOut) {
+        binOut = null;
+        log.FINEST("Binary cookie saving trial failed.");
+      }
+    }
+    
+    var ansiOut;
+    var compressed = this.encoder.encode(this.compressor.compressAnsi(encoded));
+    if ((!forceCompression) && encoded.length <= compressed.length) {
+      ansiOut = "E" + encoded;
+    } else {
+      ansiOut = "C" + compressed;
+    }
+    
+    if (binOut && binOut.length < ansiOut.length) {
+      log.FINEST("Binary compression ratio:" + (binOut.length / string.length));
+      return binOut;
+    } else {
+      log.FINEST("Compression ratio: " + (ansiOut.length / string.length));
+      return ansiOut;
+    }
+  };
+
+  /**
+   * Decompresses any string that is compressed with this class 
+   * compress function.
+   * 
+   * @param {String} string compressed string
+   * @returns {String} resulting string
+   */
+  CookieCompressor.prototype.decompress = function (string) {
+    if (typeof(string) !== "string" || string === "") {
+      return string;
+    }
+    if (string.charAt(0) === "\"") {
+      string = string.substring(1, string.length - 1);
+    }
+    log.FINEST("Decompressing...");
+    var code = string.charAt(0);
+    string = string.substring(1);
+    
+    switch (code) {
+    case "E":
+      return this.encoder.decode(string);
+    case "C":
+      var tmp = this.compressor.decompressAnsi(this.encoder.decode(string));
+      return this.encoder.decode(tmp);
+    case "B":
+      var tmp1 = this.compressor.decompress(this.encoder.decode(string));
+      return this.encoder.decode(tmp1);
+    default:
+      throw "This code is not supported! Code: " + code;
+    }
+  };
+})();
 /*EXCLUDE: SESSION*/
+
+
+
 
 
 
@@ -7429,9 +9160,11 @@ var JSON = {};
 
 (function () {
 
-  var SimpleCookie = q.html.simplecookie,
-    Utils = qubit.opentag.Utils;
-
+  var Cookie = qubit.Cookie;
+  var Utils = qubit.opentag.Utils;
+    
+  var log = new qubit.opentag.Log("Session -> ");
+  
   /**
    * #Session utilities class.
    * 
@@ -7442,15 +9175,46 @@ var JSON = {};
    */
   var Session = function () {};
   
-  Utils.clazz("qubit.opentag.Session", Session);
+  qubit.Define.clazz("qubit.opentag.Session", Session);
 
+  var compressor = new qubit.opentag.compression.CookieCompressor({});
+
+  /**
+   * Utility function to read compressed cookie.
+   * 
+   * @param {String} name cookie name
+   * @returns {String} decompressed cookie
+   */
+  Session.readCompressedCookie = function (name) {
+    var cookie = Cookie.get(name, true);
+    return compressor.decompress(cookie);
+  };
+  
+  /**
+   * Function used to setup the session object.
+   * 
+   * @param {Object} config session configuration object
+   * @returns {Object} session object.
+   */
   Session.setupSession = function (config) {
     var session, i, cookie, cookieText, cookieName, now;
     session = {};
     session.sessionCount = q.cookie.SimpleSessionCounter
             .update(config.cookieDomain);
+    
     cookieName = "qtag_" + config.containerId;
-    cookie = SimpleCookie.readCookie(cookieName);
+    var xCookieName = "x_qtag_" + config.containerId;
+    
+    // compat for non compressed cookie, historical compability, remove this
+    // code after 15th of Sep 2015
+    cookie = Cookie.get(cookieName);
+    var nonCompressedCookie = !!cookie;
+    
+    if (cookie === null) {
+      //try compressed new cookie in use
+      cookie = Cookie.get(xCookieName, true);
+      cookie = compressor.decompress(cookie);
+    }
 
     if (cookie) {
       try {
@@ -7477,7 +9241,9 @@ var JSON = {};
         __v: {}
       };
     }
+    
     now = new Date().getTime();
+    
     //At this point session.sessionCount is from SimpleSessionCounter
     //cookie.sc is the last simpleSessionCounter result we have
     //we do this to see if there is a change in it
@@ -7522,7 +9288,8 @@ var JSON = {};
 
     i = 0;
 
-    while ((cookieText.length > config.maxCookieLength) && (i < 5)) {
+    while ((compressor.compress(cookieText).length > config.maxCookieLength) &&
+            (i < 5)) {
       if (cookie.referrer.length >= 3) {
         cookie.referrer.splice(2, 1);
       } else if (cookie.referrer.length === 2) {
@@ -7535,17 +9302,48 @@ var JSON = {};
     }
 
     session.referrer = cookie.referrer;
-
-    SimpleCookie.writeCookie(cookieName, cookieText, -100, "");
-    SimpleCookie.writeCookie(cookieName, cookieText, 365, config.cookieDomain);
+    
+    if (nonCompressedCookie) {
+      //remove old cookie if exists
+      Cookie.rm(cookieName);
+    }
+    
+    var xCookieText = compressor.compress(cookieText);
+    Cookie.rm(xCookieName);
+    if (config.maxCookieLength > 0) {
+      Cookie.set(xCookieName, xCookieText, 365, config.cookieDomain, true);
+    }
 
     session.setVariable = function (key, value, time) {
       var t = (!!time) ? time : 0;
       cookie.__v[key] = [value, t];
-      SimpleCookie.writeCookie(cookieName, JSON.stringify(cookie), 365, 
-          config.cookieDomain);
+      var xCookieText = compressor.compress(JSON.stringify(cookie));
+      if (config.maxCookieLength > 0) {
+        Cookie.set(xCookieName, xCookieText, 365, config.cookieDomain, true);
+      } else {
+        Cookie.rm(xCookieName);
+      }
     };
-    session.getCookie = SimpleCookie.readCookie;
+    
+    session.getCookie = function (name, compressed) {
+      var res = Cookie.get(name, true); //get encoded
+      if (res && (compressed || name.indexOf("x_") === 0)) {
+        log.FINE("getCookie() : Comressed cookie accessed:\n" +
+                name + "=" + res);//L
+        try {
+          res = compressor.decompress(res);
+        } catch (ex) {
+          log.ERROR("Cookie failed to decompress: " + ex);
+        }
+      } else {
+        //apply decoding
+        if (res !== null) {
+          res = Cookie.decode(res);
+        }
+      }
+      return res;
+    };
+    
     session.getVariable = function (key) {
       var v, t, now;
       v = cookie.__v[key];
@@ -7557,6 +9355,7 @@ var JSON = {};
       }
       return null;
     };
+    
     session.on = function (event, el, fn) {
       if (el.attachEvent) {
         el.attachEvent("on" + event, fn);
@@ -7564,13 +9363,21 @@ var JSON = {};
         el.addEventListener(event, fn, false);
       }
     };
+    
+    session.getTagCookie = function () {
+      return Session.readCompressedCookie(xCookieName);
+    };
+    
+    Session.lastSession = session;
+    
     return session;
   };
   
   /**
+   * Function check current refferer is same as last one.
    * 
    * @param {Array} referrers
-   * @param {Boolean} now
+   * @param {Date} now
    * @param {Number} overlapDuration
    * @returns {Boolean}
    */
@@ -7590,6 +9397,7 @@ var JSON = {};
   
   /**
    * Checks if page referrer is different from this domain.
+   * 
    * @returns {Boolean}
    */
   Session.isReferrerDifferent = function () {
@@ -7643,40 +9451,43 @@ var JSON = {};
 
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
 
-(function(){
+(function () {
   var Utils = qubit.opentag.Utils;
   var BaseFilter = qubit.opentag.filter.BaseFilter;
   var BaseTag = qubit.opentag.BaseTag;
   var Timed = qubit.opentag.Timed;
   var Tags = qubit.opentag.Tags;
   var Session = qubit.opentag.Session;//:session
-  var SimpleCookie = q.html.simplecookie;
+  var Cookie = qubit.Cookie;
   var log = new qubit.opentag.Log("Container -> ");
 
   var _counter = 1;
 
 /* Consent hack from old qtag - will be updated by requires renewing consent.
- * @TODO seriously, clean this up in opentag!
+ * @TODO seriously, clean this up in opentag! use global not window
  * Compatibility layer.
  */
-  window.opentag_consentGiven = function () {
-    Container.consentIsGiven = true;
-    var all = Container.getContainers();
-    for (var i = 0; i < all.length; i++) {
-      try {
-        all[i].run();
-      } catch (ex) {
-        log.ERROR("error running consent dependant containers: " + ex);
+  try {
+    window.opentag_consentGiven = function () {
+      Container.consentIsGiven = true;
+      var all = Container.getContainers();
+      for (var i = 0; i < all.length; i++) {
+        try {
+          all[i].run();
+        } catch (ex) {
+          log.ERROR("error running consent dependant containers: " + ex);
+        }
       }
-    }
-  }.bind(this);
-  
+    }.bind(this);
+  } catch (ex) {
+    log.WARN("opentag_consentGiven could not be set!");
+  }
   /**
    * #Tags Container class
    * Tags are normally grouped into container objects which define some of
@@ -7690,9 +9501,11 @@ var JSON = {};
    * applies) for opentag.
    * 
    * Example of usage:
-   *
-   *       var aContainer =  new qubit.opentag.Container({
-        maxCookieLength: 2500,
+   *       
+
+
+      var aContainer =  new qubit.opentag.Container({
+        maxCookieLength: 1000,
         delayDocWrite: true,
         name: "Container A",
         tellLoadTimesProbability: true,
@@ -7718,7 +9531,7 @@ var JSON = {};
    * @param config {Object} config object used to build instance
    * 
    */
-  function Container (config) {
+  function Container(config) {
     this.runQueue = [];
     /*log*/
     this.log = new qubit.opentag.Log("", function () {
@@ -7741,11 +9554,11 @@ var JSON = {};
        */
       cookieDomain: "",
       /**
-       * @cfg {Number} [maxCookieLength=3000]
+       * @cfg {Number} [maxCookieLength=1000]
        * Maximum cookie length to be used by this tag. Set it to lower value
        * if serving pages use very long cookies.
        */
-      maxCookieLength: 3000,
+      maxCookieLength: 1000,
       /**
        * @cfg {Boolean} [gzip=true]
        * True by default, indicates if tags should be zipped with gzip standard.
@@ -7791,6 +9604,13 @@ var JSON = {};
        */
       trackSession: false,
       /**
+       * @cfg {Boolean} [disabled=false]
+       * Indicates if container is disabled. Disabled container will not
+       * run unless `force` parameter is used. See `run()` method for 
+       * more details.
+       */
+      disabled: false,
+      /**
        * @cfg {String} [containerId=""]
        * Container DB ID. This vaue is required for ping and session to work.
        * work.
@@ -7832,7 +9652,8 @@ var JSON = {};
       /*no-send*/
       this.ping = new qubit.opentag.Ping(this.config);
       /*~no-send*/
-      /*session*///@TODO add maybe better session condition here(much better...)  
+      /*session*/
+      //@TODO add maybe better session condition here(much better...)  
       if (this.config.trackSession) {
         this.session = Session.setupSession(this.config);
       }
@@ -7846,7 +9667,7 @@ var JSON = {};
     return this;
   }
 
-  Utils.clazz("qubit.opentag.Container", Container);
+  qubit.Define.clazz("qubit.opentag.Container", Container);
 
   var containers = [];
   /**
@@ -7861,6 +9682,39 @@ var JSON = {};
    */
   Container.register = function (ref) {
     Utils.addToArrayIfNotExist(containers, ref);
+  };
+  
+  /**
+   * Function finds containers that have name equal to passed parameter.
+   * @param {String} name string that will be used to compare.
+   * @returns {Array} array of Containers registered in system.
+   * 
+   */
+  Container.findContainersByName = function (name) {
+    var items = this.getContainers();
+    var results = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].config.name === name) {
+        results.push(items[i]);
+      }
+    }
+    return results;
+  };
+  
+  /**
+   * Gets container by its's given ID.
+   * @param {String} id
+   * @returns {qubit.opentag.Container} Container instance if found or 
+   *  null otherwise.
+   */
+  Container.getById = function (id) {
+    var items = this.getContainers();
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].config.containerId === id) {
+        return items[i];
+      }
+    }
+    return null;
   };
   
   /**
@@ -7892,7 +9746,7 @@ var JSON = {};
    * @returns {Boolean}
    */
   Container.prototype.hasConsent = function () {
-    return SimpleCookie.readCookie("qubitconsent") === "Accepted";
+    return Cookie.get("qubitconsent") === "Accepted";
   };
 
   /**
@@ -7922,7 +9776,7 @@ var JSON = {};
   };
   
   /**
-   * Function called wheh tag is registered with this container.
+   * Function called when tag is registered with this container.
    * @event
    * @param {qubit.opentag.BaseTag} tag
    */
@@ -8044,18 +9898,26 @@ var JSON = {};
   
   /**
    * Function calling tags to start execution.
+   * If Container.LOCKED is set to true or QUBIT_CONTAINERS_LOCKED is set to 
+   * true container will not run - to run it, use force parameter. 
+   * Those parameters are used mainly for debugging. Normally you can ignore 
+   * locking mechanism.
    * @param config
+   * @param {Boolean} force use if containers are LOCKED to enforce running.
    */
-  Container.prototype.runTags = function (config) {
-    if (Container.OFF || global.QUBIT_CONTAINERS_OFF) {
-      this.log.INFO("Container are DISABLED.");
-      this.log.INFO("To enable, set Container.OFF to " +
-              "true and set QUBIT_CONTAINERS_OFF to false.");//L
-      this.log.WARN("Container disabled -will stop here.");
-      return;
+  Container.prototype.runTags = function (config, force) {
+    if (!force) {
+      if (Container.LOCKED || Utils.global().QUBIT_CONTAINERS_LOCKED) {
+        this.log.INFO("All containers are LOCKED.");
+        this.log.INFO("To run, set Container.LOCKED to false and " +
+                " set Utils.global().QUBIT_CONTAINERS_LOCKED to false or " +//L
+                "use force parameter.");//L
+        this.log.WARN("Container locked - stopping here.");
+        return;
+      }
     }
     
-    var containerIsSynchronous = this.containerScriptLoadedSynchronously();
+    var forceAsync = !this.containerScriptLoadedSynchronously();
     
     var command = "runIfFiltersPass";
     if (config && config.command) {
@@ -8068,46 +9930,62 @@ var JSON = {};
      */
     this.runningStarted = new Date().valueOf();
     this.log.FINE("triggering runningStarted at " + this.runningStarted);
-    var tagsRunMap = {};
+    var firedTagsMap = {};
     for (var name in this.tags) {
       try {
         var tag = this.tags[name];
         //ignore tag state or check if clean and unstarted
         if (this.includedToRun(tag)) {
-          this.log.FINE("triggering tag named: " + name);
-          
-          if (!containerIsSynchronous) {
-            tag.forceAsynchronous = true;
-          }
-          
-          if (this.config.delayDocWrite) {
-            tag.delayDocWrite = true;
-          }
-            //attach session if necessary
-          tag.session = tag.session || this.session;//:session
-          //if dependencies are defind, and they are in the container, 
-          //try to run them immediately instead of waiting later!
-          if (tag.dependencies.length > 0) {
-            for (var i = 0; i < tag.dependencies.length; i++) {
-              var dependency = tag.dependencies[i];
-              var dname = dependency.config.name;
-              if(!tagsRunMap[dname] && this.tags[dname]) {
-                tagsRunMap[dname] = dependency;
-                dependency[command]();
+          //if dependencies are defined, and they are in the container, 
+          //try to run them rather now instead of later! (reordering)
+          var deps = tag.getDependencies();
+          if (deps.length > 0) {
+            for (var i = 0; i < deps.length; i++) {
+              var dependency = deps[i];
+              var depName = dependency.config.name;
+              if (!firedTagsMap[depName] && this.tags[depName]) {
+                firedTagsMap[depName] = dependency;
+                this._tagRunner(dependency, command, forceAsync);
               }
             }
           }
-          if (!tagsRunMap[name]) {
-            tagsRunMap[name] = tag;
-            tag[command]();
+          if (!firedTagsMap[name]) {
+            firedTagsMap[name] = tag;
+            this._tagRunner(tag, command, forceAsync);
           }
         }
       } catch (ex) {
-        this.log.ERROR("Error running tag with name '" + name +
-                "'.\n Error: " + ex);//L
+        this.log.ERROR("Error while preparing tag '" + name +
+                "' to run.\n Error: " + ex);//L
       }
     }
+    //try to send pings sooner than later
+    Timed.setTimeout(function () {
+      this.sendPingsNotTooOften();
+    }.bind(this), 1100);
+    
     this.waitForAllTagsToFinish();
+  };
+
+  Container.prototype._tagRunner = function (tag, command, forceAsync) {
+    try {
+      if (this.includedToRun(tag)) {
+        this.log.FINE("triggering tag named: " + tag.config.name);
+        if (forceAsync) {
+          tag.forceAsynchronous = true;
+        }
+        if (this.config.delayDocWrite) {
+          tag.delayDocWrite = true;
+        }
+        //attach session if necessary
+        tag.session = tag.session || this.session;//:session
+        tag[command]();
+      }
+    } catch (ex) {
+      this.log.ERROR(" -> tagRunner: Error running tag with name '" + 
+              tag.config.name + //L
+              "'.\n Error: " + ex);//L
+    }
   };
 
   /**
@@ -8116,12 +9994,21 @@ var JSON = {};
    * @param {qubit.opentag.BaseTag} tag tag to test if can be included
    * @returns {Boolean}
    */
-  Container.prototype.includedToRun = function(tag) {
-    if (tag.config.inactive) {
+  Container.prototype.includedToRun = function (tag) {
+    if (!tag) {
       return false;
     }
+    var cfg = tag.config;
+    if (cfg.inactive) {
+      return false;
+    }
+    if (cfg.disabled) {
+      if (!tag.cookieSaysToRunEvenIfDisabled()) {
+        return false;
+      }
+    }
     var consentOk = Container.consentIsGiven ||
-        (!tag.config.needsConsent) || this.hasConsent();
+        (!cfg.needsConsent) || this.hasConsent();
     var atInitialState = (tag.state === BaseTag.prototype.STATE.INITIAL);
     return this.ignoreTagsState || (consentOk && atInitialState);
   };
@@ -8136,10 +10023,19 @@ var JSON = {};
       return;
     }
     
+    if (!this._lastWaited) {
+      this._lastWaited = new Date().valueOf();
+    }
+    
     var l = this.log;//L
-    var finished = this.allTagsFinished();
+    var timedOut = (new Date().valueOf() - this._lastWaited) > 15 * 1000;
+    var finished = this.allTagsFinished() || timedOut;
     
     if (!this._showFinishedOnce && finished) {
+      this._lastWaited = null;
+      if (timedOut) {
+        this.log.WARN("Waiting too long. Check tags dependencies.");
+      }
       this._showFinishedOnce = true;
       /**
        * Property telling if and when all tags has been detected to finish
@@ -8161,9 +10057,11 @@ var JSON = {};
 
       l.INFO("Finished in " +
           (this.runningFinished - this.runningStarted) + "ms.", 0, styling);
+  
+      var len;
       
       if (results.run) {
-        var len = Utils.keys(results.run).length;
+        len = Utils.keys(results.run).length;
         l.INFO("Successfully run tags[" + len + "]:", 0, styling);
         l.INFO(results.run, true);
       } else {
@@ -8171,7 +10069,7 @@ var JSON = {};
       }
       
       if (results.failed) {
-        var len = Utils.keys(results.failed).length;
+        len = Utils.keys(results.failed).length;
         var addRed = results.failed === null ? "" : "color: #DF5500;";
         l.INFO("Failed to run[" + len + "]:", 0,  styling + addRed);
         l.INFO(results.failed, true);
@@ -8180,7 +10078,7 @@ var JSON = {};
       }
       
       if (results.awaiting) {
-        var len = Utils.keys(results.awaiting).length;
+        len = Utils.keys(results.awaiting).length;
         l.INFO("There is still " + awaitingLen +
                 " tag(s) ready to be fired by" +
                 " awaiting filters that can run.",
@@ -8193,15 +10091,23 @@ var JSON = {};
       }
 
       if (results.consent) {
-        var len = Utils.keys(results.consent).length;
+        len = Utils.keys(results.consent).length;
         l.INFO("Consent awaiting tags[" + len + "]:", 0, styling);
         l.INFO(results.consent, true);
       } else {
         l.INFO("No consent awaiting tags.", 0, styling);
       }
       
+      if (results.locked) {
+        len = Utils.keys(results.locked).length;
+        l.INFO("Locked [" + len + "]:", 0,  styling);
+        l.INFO(results.locked, true);
+      } else {
+        l.INFO("No locked tags.", 0,  styling);
+      }
+      
       if (results.other) {
-        var len = Utils.keys(results.other).length;
+        len = Utils.keys(results.other).length;
         l.INFO("Other unloaded tags[" + len + "]:", 0, styling);
         l.INFO(results.other, true);
       } else {
@@ -8221,13 +10127,13 @@ var JSON = {};
       }
       
     } else if (!finished) {
-        this._waitForAllTagsToFinishWaiting = true;
-        this._showFinishedOnce = false;
-        
-        Timed.setTimeout(function () {
-          this._waitForAllTagsToFinishWaiting = false;
-          this.waitForAllTagsToFinish();
-        }.bind(this), 100);
+      this._waitForAllTagsToFinishWaiting = true;
+      this._showFinishedOnce = false;
+
+      Timed.setTimeout(function () {
+        this._waitForAllTagsToFinishWaiting = false;
+        this.waitForAllTagsToFinish();
+      }.bind(this), 100);
         
     } else {
       l.INFO("********************************************************");
@@ -8249,7 +10155,7 @@ var JSON = {};
    * be re-run. Logs are never resetted.
    */
   Container.prototype.resetAllTags = function () {
-    log.WARN("reseting all tags!");
+    this.log.WARN("reseting all tags!");
     for (var prop in this.tags) {
       if (this.tags.hasOwnProperty(prop)) {
         this.tags[prop].reset();
@@ -8261,7 +10167,7 @@ var JSON = {};
    * Function reset this container (including it's registered tags).
    */
   Container.prototype.reset = function () {
-    log.WARN("reseting container!");
+    this.log.WARN("reseting container!");
     this.runningFinished = undefined;
     this._waitForAllTagsToFinishWaiting = undefined;
     this.runningStarted = undefined;
@@ -8286,7 +10192,15 @@ var JSON = {};
    * ready to be submitted and select them for submission.
    */
   Container.prototype.sendPings = function () {
+    var i;
     if (this.isTellingLoadTimes) {
+//    Those are available in results:
+//      run: runScripts, (to be sent NOW)
+//      failed: failed, (to be NOT sent)
+//      awaiting: filterReady, (to be set with callback)
+//      consent: consent, (to be NOT sent)
+//      locked: locked, (to be NOT sent)
+//      other: other filterReady, (to be set with callback)
       var results = this.getAllTagsByState();
       var _this = this;
       var loadTimes;
@@ -8294,17 +10208,17 @@ var JSON = {};
       if (results.run) {
         //send "just run" load times
         loadTimes = Tags.getLoadTimes(results.run);
-        this.log.INFO("sending standard load pings");
+        this.log.INFO("Sending standard load pings");
         this.lastPingsSentTime = new Date().valueOf();
         this.ping.send(this.config, loadTimes);
       }
       
       /*session*/
-      //dedupe
+      //dedupe part:
       loadTimes = Tags.getLoadTimes();
       var deduplicatedTagsToBeSent = [];
-      for (var i = 0; i < loadTimes.length; i++) {
-        (function(j) {
+      for (i = 0; i < loadTimes.length; i++) {
+        (function (j) {
           var tag = loadTimes[j].tag;
           if (tag.config.dedupe && tag.sendDedupePing) {
             deduplicatedTagsToBeSent.push(tag);
@@ -8312,49 +10226,57 @@ var JSON = {};
         }(i));
       }
       if (deduplicatedTagsToBeSent.length > 0) {
-        this.log.INFO("sending deduplication pings");
+        this.log.INFO("Sending deduplication pings");
         this.lastDedupePingsSentTime = new Date().valueOf();
         this.ping.sendDedupe(this.config, deduplicatedTagsToBeSent);
       }
-
+      
+      // set callbacks for "other"
       if (results.other) {
         loadTimes = Tags.getLoadTimes(results.other);
-        var awaitingTagsToBeSent = [];
-        for (var i = 0; i < loadTimes.length; i++) {
-          (function(j) {
+        var otherTagsToBeSent = [];
+        for (i = 0; i < loadTimes.length; i++) {
+          (function (j) {
             var tag = loadTimes[j].tag;
-            awaitingTagsToBeSent.push(loadTimes[j]);
+            otherTagsToBeSent.push(loadTimes[j]);
             var after = tag.onAfter;
-            tag.onAfter = function(success) {
+            tag.onAfter = function (success) {
               after.call(tag, success);
               _this.sendPingsNotTooOften();
               if (success) {
-                tag.log.INFO("SENDING LOAD STATS");
+                tag.log.INFO("[Other]SENDING LOAD STATS");
               }
             };
           }(i));
         }
+        
+        //in case tags are fired and method used separately
+        if (otherTagsToBeSent.length > 0) {
+          this.ping.send(this.config, otherTagsToBeSent);
+        }
       }
-
+      
+      // set callbacks for "other"
       if (results.awaiting) {
         loadTimes = Tags.getLoadTimes(results.awaiting);
         var awaitingTagsToBeSent = [];
-        for (var i = 0; i < loadTimes.length; i++) {
-          (function(j) {
+        for (i = 0; i < loadTimes.length; i++) {
+          (function (j) {
             var tag = loadTimes[j].tag;
             awaitingTagsToBeSent.push(loadTimes[j]);
 
             var after = tag.onAfter;
-            tag.onAfter = function(success) {
+            tag.onAfter = function (success) {
               after.call(tag, success);
               _this.sendPingsNotTooOften();
               if (success) {
-                tag.log.INFO("SENDING LOAD STATS");
+                tag.log.INFO("[Awaiting]SENDING LOAD STATS");
               }
             };
           }(i));
         }
-
+        
+        //in case tags are fired and method used separately
         if (awaitingTagsToBeSent.length > 0) {
           this.ping.send(this.config, awaitingTagsToBeSent);
         }
@@ -8389,9 +10311,9 @@ var JSON = {};
    */
   Container.getAllTagsByState = function (tags) {
     var runScripts = null, other = null, filterReady = null, failed = null,
-            consent = null;
-    
-    var FILTERS_FAILED = BaseTag.prototype.STATE.FILTERS_FAILED;
+            consent = null, locked = null;
+
+    var LOWEST_FAIL_STATE = BaseTag.prototype.STATE.EXECUTED_WITH_ERRORS;
     for (var prop in tags) {
       var tag = tags[prop];
       if (tag instanceof BaseTag) {
@@ -8399,17 +10321,20 @@ var JSON = {};
         if (tag.scriptExecuted > 0) {
           runScripts = runScripts || {};
           attachRenamedIfExist(runScripts, tag, name);
-        } else if (tag.scriptExecuted < 0 || (tag.state > FILTERS_FAILED)) {
-            failed = failed || {};
-            attachRenamedIfExist(failed, tag, name);
+        } else if (tag.locked) {
+          locked = locked || {};
+          attachRenamedIfExist(locked, tag, name);
+        } else if (tag.scriptExecuted < 0 || (tag.state >= LOWEST_FAIL_STATE)) {
+          failed = failed || {};
+          attachRenamedIfExist(failed, tag, name);
         } else if (tag.filtersState() === BaseFilter.state.SESSION ||
                 tag.filtersState() > 0) {
           filterReady = filterReady || {};
           attachRenamedIfExist(filterReady, tag, name);
         } else if (tag.config.needsConsent) {
-            //consent needing unloaded
-            consent = consent || {};
-            attachRenamedIfExist(consent, tag, name);
+          //consent needing unloaded
+          consent = consent || {};
+          attachRenamedIfExist(consent, tag, name);
         } else {
           other = other || {};
           attachRenamedIfExist(other, tag, name);
@@ -8417,11 +10342,13 @@ var JSON = {};
       }
     }
     
+    // note that sendPings is using this function to select pings to be sent.
     return {
       run: runScripts,
       failed: failed,
       awaiting: filterReady,
       consent: consent,
+      locked: locked,
       other: other
     };
   };
@@ -8444,18 +10371,25 @@ var JSON = {};
    * @returns {Boolean}
    */
   Container.prototype.allTagsFinished = function () {
-    for(var prop in this.tags) {
+    for (var prop in this.tags) {
       if (this.tags.hasOwnProperty(prop)) {
         var tag = this.tags[prop];
         if (tag instanceof qubit.opentag.BaseTag) {
           //tag.filtersState() < 0 === filters are passed
+          //tag.locked is not locked
           // === 0 FAILED
           // > 0 filter is awaiting
           var state = tag.filtersState();
-          if (tag.filtersState() < 0 &&
-                  !(tag.finished() || (tag.config.runner && !tag.isRunning))) {
-            if (state !== BaseFilter.state.SESSION) {
-              return false;
+          if (!tag.config.disabled) {
+            var notFailedAndUnlocked = tag.filtersState() < 0 && !tag.locked;
+            var tagNotFinishedOrNotRunner = 
+                    !(tag.finished() || (tag.config.runner && !tag.isRunning));
+            if (notFailedAndUnlocked && tagNotFinishedOrNotRunner) {
+              var isNotSession = (state !== BaseFilter.state.SESSION);
+              var doesWaitForDeps = +tag.awaitingDependencies > 0;
+              if (isNotSession && !doesWaitForDeps) {
+                return false;
+              }
             }
           }
         }
@@ -8471,16 +10405,16 @@ var JSON = {};
      #!/api/qubit.opentag.pagevariable.BaseVariable)
    */
   Container.prototype.getPageVariables = function () {
-  var vars = [];
-  for (var prop in this.tags) {
-    if (this.tags.hasOwnProperty(prop)) {
-      var tVars = this.tags[prop].getPageVariables();
-      for (var i = 0; i < tVars.length; i++) {
-        //for each parameter, get variable instance if not added already
-        Utils.addToArrayIfNotExist(vars, tVars[i]);
+    var vars = [];
+    for (var prop in this.tags) {
+      if (this.tags.hasOwnProperty(prop)) {
+        var tVars = this.tags[prop].getPageVariables();
+        for (var i = 0; i < tVars.length; i++) {
+          //for each parameter, get variable instance if not added already
+          Utils.addToArrayIfNotExist(vars, tVars[i]);
+        }
       }
     }
-  }
     return vars;
   };
   
@@ -8502,12 +10436,30 @@ var JSON = {};
     }
     return rets;
   };
+  /**
+   * When container is disabled - this method will set a cookie
+   * so all containers will ignore disabled state in config and will run as
+   * normal.
+   * This is an useful method for debugging and testing purposes.
+   */
+  Container.setCookieForDisabledContainersToRun = function () {
+    qubit.Cookie.set("qubit.opentag.forceContainerRunning", "true");
+  };
+  
+  /**
+   * This method clears cookie set with `setCookieForDisabledContainersToRun()`.
+   */
+  Container.rmCookieForDisabledContainersToRun = function () {
+    qubit.Cookie.rm("qubit.opentag.forceContainerRunning");
+  };
 })();
 
 
 
+
+
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -8536,8 +10488,7 @@ var JSON = {};
     
     if (this.singleton) {
       var path = this.PACKAGE_NAME  + "." + this.CLASS_NAME;
-      var zuper = 
-              qubit.opentag.Utils.getObjectUsingPath(path);
+      var zuper = qubit.opentag.Utils.getObjectUsingPath(path, PKG_ROOT);
       if (zuper.__instance) {
         zuper.__instance.log.FINEST("Returning singleton instance.");
         return zuper.__instance;
@@ -8548,7 +10499,10 @@ var JSON = {};
     LibraryTag.superclass.call(this, config); 
   }
   
-  Utils.clazz("qubit.opentag.LibraryTag", LibraryTag, qubit.opentag.BaseTag);
+  qubit.Define.clazz(
+          "qubit.opentag.LibraryTag",
+          LibraryTag,
+          qubit.opentag.BaseTag);
   
   /**
    * @static
@@ -8624,7 +10578,7 @@ var JSON = {};
     LibraryTag.superclass.prototype.before.call(this);
     
     if (this.config.html || this.config.script) {
-      log.WARN("config.html or config.script is set while using pre." +
+      this.log.WARN("config.html or config.script is set while using pre." +
               " Cancelling running pre.");//L
       return false;//continue normally
     }
@@ -8650,7 +10604,7 @@ var JSON = {};
       }
     } catch (ex) {
       this.log.ERROR(this.config.name + " exception while running pre: " + ex);
-      return true;//cancell running 
+      return true;//cancel running 
     }
     return false;
   };
@@ -8663,7 +10617,7 @@ var JSON = {};
   LibraryTag.prototype.after = function (success) {
     LibraryTag.superclass.prototype.after.call(this, success);
     if (this.config.html || this.config.script) {
-      log.WARN("config.html or config.script is set while using post." +
+      this.log.WARN("config.html or config.script is set while using post." +
               " Cancelling running post.");//L
       return;
     }
@@ -8721,7 +10675,7 @@ var JSON = {};
   LibraryTag.define = function (namespace, libConfig) {
     namespace = namespace.replace(/^[\.]+/g, "")
       .replace(/[\.]+$/g, "")
-      .replace(/\.+/g,".");
+      .replace(/\.+/g, ".");
     
     //config must be set in runtime - for each instance
     var libraryDefaultConfig = libConfig.config;
@@ -8741,8 +10695,8 @@ var JSON = {};
       //update instance properties for new defaults
       cfg = cfg || {};
       //@todo repair this
-      var defaultsCopy = Utils.objectCopy(libraryDefaultConfig, {maxDeep: 5});
-      for(var prop in defaultsCopy) {
+      var defaultsCopy = Utils.objectCopy(libraryDefaultConfig, {maxDeep: 8});
+      for (var prop in defaultsCopy) {
         if (!cfg.hasOwnProperty(prop)) {
           cfg[prop] = defaultsCopy[prop];
         }
@@ -8752,7 +10706,7 @@ var JSON = {};
       var ret = qubit.opentag.LibraryTag.call(this, cfg);
       //any additional constructor? run it.
       if (constr) {
-          constr.call(this, cfg);
+        constr.call(this, cfg);
       }
       if (ret) {
         return ret;
@@ -8760,7 +10714,7 @@ var JSON = {};
     };
     
     var ret = qubit.opentag.Utils
-            .defineClass(namespace, LibraryTag, prototypeTemplate);
+            .defineClass(namespace, LibraryTag, prototypeTemplate, GLOBAL);
     
     //register them also in qubit scope.
     Utils.namespace("qubit.opentag.libraries." + namespace, ret);
@@ -8770,8 +10724,9 @@ var JSON = {};
 
 
 
+
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -8822,19 +10777,22 @@ var JSON = {};
     CustomTag.superclass.call(this, config);
   }
   
-  Utils.clazz("qubit.opentag.CustomTag", CustomTag, qubit.opentag.LibraryTag);
+  qubit.Define.clazz(
+          "qubit.opentag.CustomTag",
+          CustomTag,
+          qubit.opentag.LibraryTag);
 }());
 
 
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
 
 (function () {
-  var Utils = qubit.opentag.Utils;
+  var Define = qubit.Define;
   
   /**
    * #PatternType static class.
@@ -8873,7 +10831,7 @@ var JSON = {};
     ALL_URLS: "All URLs"
   };
   
-  Utils.namespace("qubit.opentag.filter.pattern.PatternType", PatternType);
+  Define.namespace("qubit.opentag.filter.pattern.PatternType", PatternType);
 }());
 
 
@@ -8883,8 +10841,9 @@ var JSON = {};
 
 
 
+
 /*
- * Opentag, a tag deployment platform
+ * TagSDK, a tag development platform
  * Copyright 2013-2014, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
@@ -8925,7 +10884,7 @@ var JSON = {};
     };
     
     if (config) {
-      for(var prop in config) {
+      for (var prop in config) {
         if (config.hasOwnProperty(prop)) {
           defaultConfig[prop] = config[prop];
         }
@@ -8935,7 +10894,7 @@ var JSON = {};
     URLFilter.superclass.call(this, defaultConfig);
   }
   
-  Utils.clazz("qubit.opentag.filter.URLFilter", URLFilter, BaseFilter);
+  qubit.Define.clazz("qubit.opentag.filter.URLFilter", URLFilter, BaseFilter);
   
   /**
    * URL getting wrapper.
@@ -8962,28 +10921,28 @@ var JSON = {};
     var pattern = this.config.pattern;
     
     switch (this.config.patternType) {
-      case PatternType.CONTAINS:
-        match = (url.toLowerCase().indexOf(pattern.toLowerCase()) >= 0);
-        break;
-      case PatternType.MATCHES_EXACTLY:
-        match = (url.toLowerCase() === this.config.pattern.toLowerCase());
-        break;
-      case PatternType.STARTS_WITH:
-        match = (url.toLowerCase().indexOf(pattern.toLowerCase()) === 0);
-        break;
-      case PatternType.ENDS_WITH:
-        match = ((url.lastIndexOf(pattern.toLowerCase()) + pattern.length) ===
-                   url.length);
-        break;
-      case PatternType.REGULAR_EXPRESSION:
-        match = new RegExp(pattern).test(url);
-        break;
-      case PatternType.ALL_URLS:
-        match = true;
-        break;
+    case PatternType.CONTAINS:
+      match = (url.toLowerCase().indexOf(pattern.toLowerCase()) >= 0);
+      break;
+    case PatternType.MATCHES_EXACTLY:
+      match = (url.toLowerCase() === this.config.pattern.toLowerCase());
+      break;
+    case PatternType.STARTS_WITH:
+      match = (url.toLowerCase().indexOf(pattern.toLowerCase()) === 0);
+      break;
+    case PatternType.ENDS_WITH:
+      match = ((url.lastIndexOf(pattern.toLowerCase()) + pattern.length) ===
+                 url.length);
+      break;
+    case PatternType.REGULAR_EXPRESSION:
+      match = new RegExp(pattern).test(url);
+      break;
+    case PatternType.ALL_URLS:
+      match = true;
+      break;
     }
     /*log*/
-    Timed.maxFrequent(function() {
+    Timed.maxFrequent(function () {
       this.log.FINEST("[ Filter " + this.config.name +
               "] Checking if patternType '" +//L
               this.config.patternType + "' match '" +//L
@@ -9010,7 +10969,14 @@ var JSON = {};
 
 
 
-(function() {
+/*
+ * TagSDK, a tag development platform
+ * Copyright 2014, Qubit Group
+ * http://opentag.qubitproducts.com
+ * Author: Peter Fronc <peter.fronc@qubitdigital.com>
+ */
+
+(function () {
   var Utils = qubit.opentag.Utils;
   var PatternType = qubit.opentag.filter.pattern.PatternType;
   var URLFilter = qubit.opentag.filter.URLFilter;
@@ -9046,10 +11012,11 @@ var JSON = {};
       pageVars: {},
       scriptLoaders: {},
       tellLoadTimesProbability: 0,
+      containerDisabled: false,
       pingServerUrl: "",
       qtag_domain: "",
       delayDocWrite: false,
-      maxCookieLength: 3000,
+      maxCookieLength: 1000,
       containerName: ""
     };
 
@@ -9064,13 +11031,13 @@ var JSON = {};
     }
   }
   
-  Utils.clazz("qubit.opentag.OldTagRunner", OldTagRunner);
+  qubit.Define.clazz("qubit.opentag.OldTagRunner", OldTagRunner);
   
   /**
    * Old configuration runner function.
    * This is entry method to parse and create container with all tags definitions. 
    */
-  OldTagRunner.prototype.run = function() {
+  OldTagRunner.prototype.run = function () {
     if (!this._run) {
       this._run = new Date().valueOf();
       log.FINE("entering run");
@@ -9083,12 +11050,24 @@ var JSON = {};
         containerId: this.config.profileName,
         name: this.config.containerName,
         tellLoadTimesProbability: this.config.tellLoadTimesProbability,
+        disabled: this.config.containerDisabled,
         pingServerUrl: this.config.pingServerUrl,
         trackSession: this.config.qtag_track_session
       });
       var tags = this.getTags();
       this.container.registerTags(tags);
-      this.container.run();
+      if (!this.container.config.disabled) {
+        this.container.run();
+      } else {
+        var enabledByCookie = 
+          qubit.Cookie.get("qubit.opentag.forceContainerRunning");
+        if (enabledByCookie !== null) {
+          this.container.run();
+        } else {
+          log.WARN("Container " + this.container.config.name + 
+            " is disabled, stopping.");//L
+        }
+      }
     }
   };
 
@@ -9102,10 +11081,10 @@ var JSON = {};
     var pageVars = this.config.pageVars;
 
     var tags = [];
-
-    for (var prop in tagDefinitions) {
+    var prop, loader, tag;
+    for (prop in tagDefinitions) {
       if (tagDefinitions.hasOwnProperty(prop)) {
-        var loader = tagDefinitions[prop];
+        loader = tagDefinitions[prop];
         //property is at same time tag's ID used elsewhere
         
         //collect filters for tag
@@ -9131,12 +11110,14 @@ var JSON = {};
           name: loader.name,
           filters: filterDefinitions,
           parameters: parameterDefinitions,
-          ID: loader.id,
+          id: loader.id,
+          locked: !!loader.locked,
           url: loader.url,
           html: loader.html,
           template: !!loader.template,
           locationPlaceHolder: ((+loader.positionId) === 1) ? "NOT_END" : "END",
           locationObject: location,
+          disabled: loader.disabled,
           async: loader.async,
           needsConsent: loader.needsConsent,
           usesDocumentWrite: loader.usesDocWrite,
@@ -9167,7 +11148,7 @@ var JSON = {};
           cfg.script = loader.script;
         }
         
-        var tag = null;
+        tag = null;
         
         if (cfg.template) {
           tag = new LibraryTag(cfg);
@@ -9184,18 +11165,18 @@ var JSON = {};
     }
     
     //all tags ready, finally, attach dependencies (defined by IDs here)
-    for (var prop in tagDefinitions) {
+    for (prop in tagDefinitions) {
       if (tagDefinitions.hasOwnProperty(prop)) {
         var dependencies = [];
-        var loader = tagDefinitions[prop];
+        loader = tagDefinitions[prop];
         if (loader.dependencies) {
           for (var j = 0; j < loader.dependencies.length; j++) {
             var tagId = loader.dependencies[j];
             var dependency = tagDefinitions[tagId].instance;
             dependencies.push(dependency);
           }
-          var tag = loader.instance;
-          tag.dependencies = dependencies.concat(tag.dependencies);
+          tag = loader.instance;
+          tag.setDependencies(dependencies.concat(tag.getDependencies()));
         }
       }
     }
@@ -9231,20 +11212,20 @@ var JSON = {};
           };
           
           switch (variableDefinition.type) {
-            case V_JS_VALUE: //covers also UV
-              variable = new Expression(varCfg);
-              break;
-            case V_QUERY_PARAM:
-              variable = new URLQuery(varCfg);
-              break;
-            case V_COOKIE_VALUE:
-              variable = new Cookie(varCfg);
-              break;
-            case V_ELEMENT_VALUE:
-              variable = new DOMText(varCfg);
-              break;
-            default:
-              variable = new BaseVariable(varCfg);
+          case V_JS_VALUE: //covers also UV
+            variable = new Expression(varCfg);
+            break;
+          case V_QUERY_PARAM:
+            variable = new URLQuery(varCfg);
+            break;
+          case V_COOKIE_VALUE:
+            variable = new Cookie(varCfg);
+            break;
+          case V_ELEMENT_VALUE:
+            variable = new DOMText(varCfg);
+            break;
+          default:
+            variable = new BaseVariable(varCfg);
           }
           
           var parameter = {
@@ -9264,7 +11245,7 @@ var JSON = {};
       }
     }
     return ret;
-  };
+  }
 
   var NORMAL_FILTER = "1";
   var DEDUPE_URL_FILTER = "2";
@@ -9274,7 +11255,7 @@ var JSON = {};
    * Filter type getter.
    * @type String
    */
-  var getFilterType = function(filter) {
+  var getFilterType = function (filter) {
     var x = parseInt(filter.patternType, 10);
     if ((x < 10) || (x === 100)) {
       return NORMAL_FILTER;
@@ -9307,12 +11288,12 @@ var JSON = {};
         //  DEDUPE_SESSION_FILTER = "3";
         var session = false;
         switch (getFilterType(filter)) {
-          case NORMAL_FILTER:
-          case DEDUPE_URL_FILTER:
-            break;
-          case DEDUPE_SESSION_FILTER:
-            session = true;
-            break;
+        case NORMAL_FILTER:
+        case DEDUPE_URL_FILTER:
+          break;
+        case DEDUPE_SESSION_FILTER:
+          session = true;
+          break;
         }
 
         if (session ||
@@ -9338,7 +11319,7 @@ var JSON = {};
         filtersToReturn.push(filter.instance);
       }
     }
-    var sortFun = function(a, b) {
+    var sortFun = function (a, b) {
       return +a.priority > +b.priority;
     };
     return filtersToReturn.sort(sortFun);
@@ -9362,24 +11343,24 @@ var JSON = {};
    */
   function resolvePatternType(filter) {
     switch (filter.patternType) {
-      case FN:
-      case DEDUPE_FN:
-        return null;
-        //session execution it was...
-      case EXACT_MATCH:
-      case "1" + EXACT_MATCH:
-        return PatternType.MATCHES_EXACTLY;
-      case SUBSTRING:
-      case "1" + SUBSTRING:
-        return PatternType.CONTAINS;
-      case REGEX:
-      case "1" + REGEX:
-        return PatternType.REGULAR_EXPRESSION;
-      case ALL:
-      case "1" + ALL:
-        return PatternType.ALL_URLS;
-      default:
-        return null;
+    case FN:
+    case DEDUPE_FN:
+      return null;
+      //session execution it was...
+    case EXACT_MATCH:
+    case "1" + EXACT_MATCH:
+      return PatternType.MATCHES_EXACTLY;
+    case SUBSTRING:
+    case "1" + SUBSTRING:
+      return PatternType.CONTAINS;
+    case REGEX:
+    case "1" + REGEX:
+      return PatternType.REGULAR_EXPRESSION;
+    case ALL:
+    case "1" + ALL:
+      return PatternType.ALL_URLS;
+    default:
+      return null;
     }
   }
 })();
@@ -9391,7 +11372,7 @@ var JSON = {};
     name: "AB & Multi-Variate Testing"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.ABMultiVariateTesting",
           category);
 }());
@@ -9403,7 +11384,7 @@ var JSON = {};
     name: "Advertising Network"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.AdvertisingNetwork",
           category);
 }());
@@ -9415,7 +11396,7 @@ var JSON = {};
     name: "Affiliate Networks"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.AffiliateNetworks",
           category);
 }());
@@ -9427,7 +11408,7 @@ var JSON = {};
     name: "Audience Management"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.AudienceManagement",
           category);
 }());
@@ -9439,7 +11420,7 @@ var JSON = {};
     name: "DSP"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.DSP",
           category);
 }());
@@ -9451,7 +11432,7 @@ var JSON = {};
     name: "DSP (Ad Server)"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.DSPAdServer",
           category);
 }());
@@ -9463,7 +11444,7 @@ var JSON = {};
     name: "Digital Media Agencies"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.DigitalMediaAgencies",
           category);
 }());
@@ -9475,7 +11456,7 @@ var JSON = {};
     name: "Email Service Provider (ESP)"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.EmailServiceProviderESP",
           category);
 }());
@@ -9487,7 +11468,7 @@ var JSON = {};
     name: "Feed Management (Shopping Comparison)"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.FeedManagementShoppingComparison",
           category);
 }());
@@ -9499,7 +11480,7 @@ var JSON = {};
     name: "Live Chat & Customer Service Engine"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.LiveChatCustomerServiceEngine",
           category);
 }());
@@ -9511,7 +11492,7 @@ var JSON = {};
     name: "Merchandising & Rich Media"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.MerchandisingRichMedia",
           category);
 }());
@@ -9523,7 +11504,7 @@ var JSON = {};
     name: "Personalisation Platform"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.PersonalisationPlatform",
           category);
 }());
@@ -9535,7 +11516,7 @@ var JSON = {};
     name: "Ratings & Review Engine"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.RatingsReviewEngine",
           category);
 }());
@@ -9547,7 +11528,7 @@ var JSON = {};
     name: "Re-Targeting"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.ReTargeting",
           category);
 }());
@@ -9559,7 +11540,7 @@ var JSON = {};
     name: "Search Engine"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.SearchEngine",
           category);
 }());
@@ -9571,7 +11552,7 @@ var JSON = {};
     name: "Social"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.Social",
           category);
 }());
@@ -9583,7 +11564,7 @@ var JSON = {};
     name: "Tag Management"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.TagManagement",
           category);
 }());
@@ -9595,7 +11576,7 @@ var JSON = {};
     name: "Web Analytics"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.WebAnalytics",
           category);
 }());
@@ -9607,7 +11588,9 @@ var JSON = {};
     name: "Web Utilities / JavaScript Tools"
   };
   
-  qubit.opentag.Utils.namespace(
+  qubit.Define.namespace(
           "qubit.opentag.data.category.ABMultiVariateTesting",
           category);
+}());
+
 }());
