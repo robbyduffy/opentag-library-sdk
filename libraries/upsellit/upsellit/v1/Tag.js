@@ -6,7 +6,7 @@ qubit.opentag.LibraryTag.define("upsellit.upsellit.v1.Tag", {
 		name: "Upsellit",
 		async: true,
 		description: ".",
-		html: "<!-- Start of Upsellit Code -->\n \n<!-- End of Upsellit Code -->",
+		html: "",
 		locationDetail: "",
 		isPrivate: false,
 		url: "",
