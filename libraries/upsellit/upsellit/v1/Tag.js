@@ -13,6 +13,8 @@ qubit.opentag.LibraryTag.define("upsellit.upsellit.v1.Tag", {
 		usesDocWrite: true,
 		upgradeable: true,
 		parameters: [{
+			name: "Launch Tag",
+                        description: "",
 			token: "launch_tag"
 		}]
 		/*~DATA*/
