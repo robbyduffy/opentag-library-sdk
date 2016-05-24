@@ -90,7 +90,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.0.2-r6";
+var qversion = "3.0.2-r7";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -575,7 +575,7 @@ var UNDEF;
    * many more useful utilities. Please see the API.
    * 
    */
-  function Utils() {}
+  var Utils = function () {};
   
   var global = Define.global();
   
@@ -1544,7 +1544,12 @@ var UNDEF;
   // @TODO maybe loop will be more "smooth" choice, review it.
   var oldOnload = global.onload;
   global.onload = function (e) {
-    Utils.bodyReady();
+    try {
+      Utils.bodyReady();
+    } catch (ex) {
+      //odd chrome cases.
+      qubit.opentag.Utils.bodyReady();
+    }
     if (oldOnload) {
       oldOnload(e);
     }
