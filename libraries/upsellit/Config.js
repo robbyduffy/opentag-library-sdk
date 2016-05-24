@@ -1,9 +1,9 @@
 var Config = {
 /*config*/
   "id": 1496153169315840,
-  "name": "UpSellit",
+  "name": "Upsellit",
   "imageUrl": "http://cdn.blog.cpcstrategy.com/wp-content/uploads/2014/02/UpSellit-site-abandonment-Logo.png",
-  "description": "UpSellit increases online profitability with a suite of on-site and email solutions that deliver personalized conversion experiences. After an in-depth visitor behavior analysis, UpSellit designs completely custom conversion strategies that address specific pain points in the buying process."
+  "description": "Upsellit increases online profitability with a suite of on-site and email solutions that deliver personalized conversion experiences. After an in-depth visitor behavior analysis, UpSellit designs completely custom conversion strategies that address specific pain points in the buying process."
 /*~config*/
 };
 
