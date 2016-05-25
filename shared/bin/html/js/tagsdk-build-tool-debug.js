@@ -1547,11 +1547,24 @@ var UNDEF;
     try {
       Utils.bodyReady();
     } catch (ex) {
-      //odd chrome cases.
-      qubit.opentag.Utils.bodyReady();
+      // odd chrome cases.
+      try {
+        window.qubit.opentag.Utils.bodyReady();
+      } catch (ex) {
+        // just try
+      }
     }
-    if (oldOnload) {
-      oldOnload(e);
+    
+    var oldRef = false;
+    
+    try {
+      oldRef = oldOnload;
+    } catch (e) {
+      // try!
+    }
+    
+    if (oldRef) {
+      oldRef(e);
     }
   };
   
