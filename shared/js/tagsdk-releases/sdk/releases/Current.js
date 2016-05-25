@@ -65,7 +65,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.0.2-r7";
+var qversion = "3.0.2-r8";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -1525,19 +1525,19 @@ var UNDEF;
       // odd chrome cases.
       try {
         window.qubit.opentag.Utils.bodyReady();
-      } catch (ex) {
+      } catch (ex1) {
         // just try
       }
     }
-    
+
     var oldRef = false;
-    
+
     try {
       oldRef = oldOnload;
-    } catch (e) {
+    } catch (ex2) {
       // try!
     }
-    
+
     if (oldRef) {
       oldRef(e);
     }
