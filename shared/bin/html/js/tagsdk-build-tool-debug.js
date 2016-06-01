@@ -90,7 +90,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.0.2-r8";
+var qversion = "3.0.2-r9";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -11745,7 +11745,9 @@ var JSON = {};
       var tags = this.tags;
       for (var name in tags) {
         if (tags.hasOwnProperty(name)) {
-          var filters = tags[name].getFilters();
+          var tmpTag = tags[name];
+          tmpTag.resolveAllDynamicData();
+          var filters = tmpTag.getFilters();
           for (var i = 0; i < filters.length; i++) {
             var filter = filters[i];
             if (filter instanceof Filter && filter.isSession()) {
