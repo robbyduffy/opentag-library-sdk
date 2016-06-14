@@ -65,7 +65,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.0.2-r9";
+var qversion = "3.0.2-r10";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -8499,11 +8499,14 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * 
    * @returns Object
    */
-  Tags.resetAllTags = function () {
+  Tags.resetAllTags = function (skipFilters) {
     log.WARN("reseting all tags!");/*L*/
     var tags = Tags.getTags();
     for (var i = 0; i < tags.length; i++) {
       tags[i].reset();
+      if (!skipFilters) {
+        tags[i].resetFilters();
+      }
     }
   };
 
@@ -12169,26 +12172,32 @@ var JSON = {};
   /**
    * Function will reset all the tags to initial state. After reset all tags can
    * be re-run. Logs are never resetted.
+   * @param {Boolean} skipFilters - if filters reset should be skipped.
    */
-  Container.prototype.resetAllTags = function () {
+  Container.prototype.resetAllTags = function (skipFilters) {
     this.log.WARN("reseting all tags!");/*L*/
     for (var prop in this.tags) {
       if (this.tags.hasOwnProperty(prop)) {
-        this.tags[prop].reset();
+        var tag = this.tags[prop];
+        tag.reset();
+        if (!skipFilters) {
+          tag.resetFilters();
+        }
       }
     }
   };
   
   /**
    * Function reset this container (including it's registered tags).
+   * @param {Boolean} skipFilters - if filters should not be reset.
    */
-  Container.prototype.reset = function () {
+  Container.prototype.reset = function (skipFilters) {
     this.log.WARN("reseting container!");/*L*/
     this.runningFinished = undefined;
     this._waitForAllTagsToFinishWaiting = undefined;
     this.runningStarted = undefined;
     this._showFinishedOnce = undefined;
-    this.resetAllTags();
+    this.resetAllTags(skipFilters);
   };
   
   /*no-send*/
