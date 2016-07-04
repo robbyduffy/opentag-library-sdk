@@ -13800,11 +13800,13 @@ qubit.Define.namespace("qubit.qprotocol.PubSub", PubSub);
    * parameters.
    * 
    * Example:
-   * ```
-   *    varRef.onValueChanged(function(oldValue, variableRef){
-   *      console.log(variableRef.getValue() !== oldValue); // true
-   *    });
-   * ```
+   * 
+   * 
+   *     varRef.onValueChanged(function(oldValue, variableRef){
+   *       console.log(variableRef.getValue() !== oldValue); // true
+   *     });
+   * 
+   * 
    * 
    * See properties to check on configuration options.
    * 
@@ -13950,14 +13952,14 @@ qubit.Define.namespace("qubit.qprotocol.PubSub", PubSub);
   /**
    * Disabled for QProtocol - qprotocol handles event by itself.
    */
-  QProtocolVariable.prototype.startObserving = function () {
+  QProtocolVariable.prototype.startObservingForChanges = function () {
     // this variable manages itself all updates
   };
   
   /**
    * Disabled for QProtocol - qprotocol handles event by itself.
    */
-  QProtocolVariable.prototype.stopObserving = function () {
+  QProtocolVariable.prototype.stopObservingForChanges = function () {
     // this variable manages itself all updates
   };
   
