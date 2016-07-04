@@ -1,5 +1,4 @@
 (function () {
-
 /**
  * @author Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -86,7 +85,7 @@ var UNDEF;
 
 /*
  * Opentag, a tag deployment platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -529,7 +528,7 @@ var UNDEF;
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -634,57 +633,6 @@ var UNDEF;
   Utils.variableExists = function (value) {
     return (value !== undefined) && (value !== null);
   };
-
-//  /**
-//   * @delete
-//   * @param {opentag.qubit.BaseTag} tag
-//   * @returns {Boolean}
-//   */
-//  Utils.determineIfSync = function (tag) {
-//    var i, ii, script, scripts, src;
-//    scripts = document.getElementsByTagName("script");
-//    for (i = 0, ii = scripts.length; i < ii; i += 1) {
-//      script = scripts[i];
-//      src = script.getAttribute("src");
-//      //removed "opentag", white labelling!!!
-//      if (!!src && (src.indexOf("" + 
-//          tag.config.opentagClientId + "-" + tag.config.profileName +
-//          ".js") > 0)) {
-//        return (script.getAttribute("async") === null && 
-//            //handle ie7
-//            (script.getAttribute("defer") === false ||
-//            //handle ie8
-//            script.getAttribute("defer") === "" ||
-//            //handle chrome/firefox
-//            script.getAttribute("defer") === null));
-//      } 
-//    }
-//    return true;
-//  };
-//  
-//  /**
-//   * @delete
-//   * COPY FROM OLD.
-//   * This function replaces following patterns ONLY:
-//   * a.b.c[#] + "ZZZ ${T}[i] YYY" -> "ZZZ a.b.c[i] YYY"
-//   * a.b.c[#] + "ZZZ ${T}.length YYY" -> "ZZZ a.b.c.length YYY"
-//   * 
-//   * It is a VERY private function.
-//   * 
-//   * @param {qubit.opentag.pagevariable.BaseVariable} pageVar
-//   * @param {String} token
-//   * @param {String} str
-//   * @returns {String}
-//   */
-//  Utils.substituteArray = function (pageVar, token, str) {
-//    var start, end, index, tok;
-//    index = pageVar.value.indexOf("[#]");
-//    start = pageVar.value.substring(0, index);
-//    end = pageVar.value.substring(index + 3);
-//    str = str.replace(new RegExp(token + "\\.length", "g"), start + ".length"); 
-//    str = str.replace(new RegExp(token + "(\\[.*?\\])", "g"), start + "$1" + end);
-//    return str;
-//  };
 
   Utils.ANON_VARS = [];
   /**
@@ -1293,10 +1241,12 @@ var UNDEF;
    */
   Utils.removeFromArray = function (array, obj) {
     var i = 0, total = 0;
-    for (; i < array.length; i += 1) {
+    for (; i < array.length;) {
       if (array[i] === obj) {
         array.splice(i, 1);
         total++;
+      } else {
+        i++;
       }
     }
     return total;
@@ -1415,7 +1365,7 @@ var UNDEF;
    * @param {type} B
    * @returns {Object} returns A
    */
-  Utils.overrideFromBtoA = function (A, B) {
+  Utils.overrideFromLeftToRight = function (A, B) {
     if (A && B) {
       for (var prop in B) {
         if (B.hasOwnProperty(prop)) {
@@ -1696,16 +1646,16 @@ var UNDEF;
   
 }());
 
+
+
 /* jshint white: false */
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
-
-/*log*/
 
 (function () {
   
@@ -1806,9 +1756,27 @@ var UNDEF;
   Log.prototype.MAX_LOG_LEN = -1;
   
   var LEVEL = Log.LEVEL_NONE;
-  LEVEL = Log.LEVEL_INFO;/*D*///line deleted during merge
-  var COLLECT_LEVEL = Log.LEVEL_FINE;
+  LEVEL = Log.LEVEL_INFO;/*D*/ //line deleted during merge
+  
+  var COLLECT_LEVEL = Log.LEVEL_NONE;
+  COLLECT_LEVEL = Log.LEVEL_FINE; /*D*/
+  
   var COLLECT = true;
+  
+  Log.setLevelFromCookie = function () {
+    var cookieLevel = qubit.Cookie.get("qubit.opentag.Log.LEVEL");
+  
+    if (cookieLevel) {
+      cookieLevel = +cookieLevel;
+      if (!isNaN(cookieLevel)) {
+        if (cookieLevel > 0) {
+          var fine = Log.LEVEL_FINE;
+          Log.setCollectLevel((cookieLevel > fine) ? cookieLevel : fine);
+          Log.setLevel(+cookieLevel);
+        }
+      }
+    }
+  };
   
   /**
    * Global setter to indicate if logs should be collected (memorised).
@@ -2284,15 +2252,15 @@ var UNDEF;
     };
     
   Log.setConsole(Define.global().console);
+  Log.setLevelFromCookie();
+   
 }());
-
-/*~log*/
 
 
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -2559,7 +2527,7 @@ var UNDEF;
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -2732,7 +2700,7 @@ q.html.fileLoader.tidyUrl = function (path) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -2768,11 +2736,10 @@ q.html.fileLoader.tidyUrl = function (path) {
    * @param config {Object} config object used to build instance
    */
   function BaseFilter(config) {
-    /*log*/
+    
     this.log = new qubit.opentag.Log("", function () {
       return this.CLASS_NAME + "[" + this.config.name + "]";
     }.bind(this), "collectLogs");
-    /*~log*/
 
     this.config = {
       /**
@@ -2957,7 +2924,7 @@ q.html.fileLoader.tidyUrl = function (path) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -3015,7 +2982,7 @@ q.html.fileLoader.tidyUrl = function (path) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -3141,7 +3108,7 @@ q.html.fileLoader.tidyUrl = function (path) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -3246,10 +3213,7 @@ q.html.fileLoader.tidyUrl = function (path) {
    * @param {Function} ready
    * @param {qubit.opentag.BaseTag} tag
    */
-  Filter.prototype.customStarter = function (
-                                                          session,
-                                                          ready,
-                                                          tag) {
+  Filter.prototype.customStarter = function (session, ready, tag) {
     ready(false);
   };
   
@@ -3348,7 +3312,11 @@ q.html.fileLoader.tidyUrl = function (path) {
           this.customStarter(this.getSession(), callback, tag);
         } else {
           //if unset - used default
-          Filter.prototype.customStarter(this.getSession(), callback, tag);
+          Filter.prototype.customStarter.call(
+            this,
+            this.getSession(),
+            callback,
+            tag);
         }
       }
     } else {
@@ -4098,17 +4066,21 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 
 
+
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
 
 (function () {
   var Utils = qubit.opentag.Utils;
+  var Timed = qubit.opentag.Timed;
+  var log = new qubit.opentag.Log("BaseVariable -> ");/*L*/
+    
+  var BV_COUNTER = 0;
   
-  var BV_COUNTER = 0;  
   /**
    * 
    * 
@@ -4139,7 +4111,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
   function BaseVariable(config) {
     //defaults
     this.config = {};
-    
+    this.handlers = [];
     /*log*/
     //Add for all detailed logger and collector
     this.log = new qubit.opentag.Log("", function () {
@@ -4149,20 +4121,24 @@ q.html.HtmlInjector.getAttributes = function (node) {
     
     this.parameters = null;
     
+    /**
+     * If this property is set then 
+     *        listener handlers will be triggered on each value read.
+     * @property {Boolean} callHandlersOnRead 
+     */
+    this.callHandlersOnRead = false;
+    
     if (config) {
       this.uniqueId = "BV" + BV_COUNTER++;
       BaseVariable.ALL_VARIABLES[this.uniqueId] = this;
       
       for (var prop in config) {
-        this.config[prop] = config[prop];
-      }
-      
-      if (config.value !== undefined) {
-        this.value = config.value;
-      }
-      
-      if (config.defaultValue !== undefined) {
-        this.defaultValue = config.defaultValue;
+        if (config.hasOwnProperty(prop)) {
+          this.config[prop] = config[prop];
+          if (prop === "value") {
+            this.value = config.value;
+          }
+        }
       }
       
       var ret = BaseVariable.register(this);
@@ -4170,15 +4146,18 @@ q.html.HtmlInjector.getAttributes = function (node) {
         ret.log.FINEST("Variable config already registered.");/*L*/
         ret.log.FINEST("Returning existing one.");/*L*/
       }
+      
       return ret;
-      //return this or an existing configuration
     }
   }
   
   qubit.Define.clazz("qubit.opentag.pagevariable.BaseVariable", BaseVariable);
   
   BaseVariable.ALL_VARIABLES = {};
-
+  
+  var OBSERVED_VARIABLES = [];
+  BaseVariable.OBSERVED_VARIABLES = OBSERVED_VARIABLES;
+  
   BaseVariable.pageVariables = [];
 
   /**
@@ -4186,7 +4165,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * Static function used to register variable globally.
    * All page variable instances are exposed as 
    * `qubit.opentag.pagevariable.BaseVariable.pageVariables`.
-   * @param {qubit.opentag.pagevariable.BaseVariable} config
+   * @param {qubit.opentag.pagevariable.BaseVariable} variable
    */
   BaseVariable.register = function (variable) {
     if (variable instanceof BaseVariable) {
@@ -4202,39 +4181,52 @@ q.html.HtmlInjector.getAttributes = function (node) {
     return null;
   };
   
-  //helper function
-  function propertiesMatch(cfg, ccfg) {
-    for (var cprop in ccfg) {
-      var value = ccfg[cprop];
-      for (var prop in cfg) {
-        if (cfg.hasOwnProperty(prop)) {
-          if (cfg[prop] !== value) {
-            return false;
-          }
-        } 
-      }
-    }
-    return true;
-  }
-  
   /**
-   * BaseVariable returns exactly whats set.
+   * BaseVariable returns variable current value. It is not a plain getter and
+   * children classes often reimplement its behaviour.
+   * 
+   * This function must always return valid runtime value of this variable 
+   * object.
+   * 
+   * 
+   * 
    * @returns {Object}
    */
   BaseVariable.prototype.getValue = function () {
-    return this.value;
-  };
-  
-  /**
-   * Naturally, the value is always string, as its used to deduct real value.
-   * This function sets value directly on `this.value` property - each
-   * implementation of `BaseVariable` can interpret getting value different!
-   * @param {String} string
-   */
-  BaseVariable.prototype.setValue = function (string) {
-    this.value = string;
+    // validate and dispatch
+    this._updateCurrentValue(this.value);
+    return this.currentValue;
   };
 
+  /**
+   * @protected
+   * 
+   * When overwriting `getValue()` function remember to call this function with 
+   * value returned passed as the argument - this function takes care of 
+   * seting currentValue and dispatching change handling event.
+   * 
+   * It is protected and should be used with care.
+   * 
+   * When overwriting this method remember that `getValue()` byt default returns
+   * `this.currentValue` which this function sets - therefore should be also
+   * reimplemented. 
+   * 
+   * In most cases only "getValue" needs to be implemented in sub-classes.
+   * 
+   * @param {Object} newValue new value that getValue have generated.
+   * @returns {Boolean}
+   */
+  BaseVariable.prototype._updateCurrentValue = function (newValue) {
+    if (!this.valuesAreEqual(newValue, this.currentValue)) {
+      if (!observingStopped || this.callHandlersOnRead) {
+        this._handleValueChanged(this.currentValue, newValue);
+      }
+      this.currentValue = newValue;
+      return true;
+    }
+    return false;
+  };
+  
   /**
    * BaseVariable returns exactly whats set.
    * @returns {Object}
@@ -4332,8 +4324,6 @@ q.html.HtmlInjector.getAttributes = function (node) {
               this.uniqueId;
   };
   
-  
-  
   /**
    * Variable value accessor string. It is easy to access variable VALUE
    *  by evaluating this string.
@@ -4342,6 +4332,157 @@ q.html.HtmlInjector.getAttributes = function (node) {
   BaseVariable.prototype.getValueAccessorString = function () {
     return this.getAccessorString() + ".getValue()";
   };
+  
+  /**
+   * 
+   * Variables does support value changed event handlers and handlers can be 
+   * added using this function. Callback will receive oldValue
+   * and variable instance reference as parameters.
+   * 
+   * Example:
+   * ```
+   *    varRef.onValueChanged(function(oldValue, variableRef){
+   *      console.log(variableRef.getValue() !== oldValue); // true
+   *    });
+   * ```
+   * @param {Function} callback
+   * @param {Boolean} startObserving
+   * @returns {undefined}
+   */
+  BaseVariable.prototype.onValueChanged = function (callback, startObserving) {
+    if (Utils.addToArrayIfNotExist(this.handlers, callback) === -1) {
+      this.log.FINE("Attached value changed handler: " + callback);/*L*/
+    }
+    
+    if (startObserving !== false) {
+      this.startObservingForChanges();
+    }
+  };
+  
+  BaseVariable.prototype.deatchOnValueChanged = function (callback) {
+    if (Utils.removeFromArray(this.handlers, callback) > 0) {
+      this.log.FINE("Dettached value changed handler: " + callback);/*L*/
+    }
+  };
+  
+  /**
+   * @protected
+   * 
+   * Protected helper handling value changed.
+   * 
+   * @param {Object} oldValue
+   * @param {Object} newValue
+   */
+  BaseVariable.prototype._handleValueChanged = function (oldValue, newValue) {
+    var event = {
+      oldValue: oldValue,
+      newValue: newValue,
+      variable: this
+    };
+    
+    for (var i = 0; i < this.handlers.length; i++) {
+      try {
+        this.handlers[i](event);
+      } catch (e) {
+        this.log.ERROR(/*L*/
+          "Error while calling qprotocol variable change handler: " + e);/*L*/
+      }
+    }
+  };
+  
+  var observingStopped = true;
+  /**
+   * @static
+   * This property indicates how often polling will occur for monitoring 
+   * variables. Default value is 333 (in miliseconds).
+   * 
+   * Simply adjust `qubit.opentag.pagevariable.BaseVariable.CHECK_POLL_RATE`
+   * at any time to control polling rate.
+   * 
+   * 
+   * @property {Number} BaseVariable.CHECK_POLL_RATE
+   */
+  BaseVariable.CHECK_POLL_RATE = 333;
+  
+  function checkIfChangedAndContinue(parameters) {
+    if (observingStopped) {
+      return false;
+    }
+    
+    for (var i = 0; i < OBSERVED_VARIABLES.length; i++) {
+      try {
+        var variable = OBSERVED_VARIABLES[i];
+        // get value triggers the update on new value
+        variable.getValue();
+      } catch (ex) {
+        log.ERROR("Value change update exception: " + ex);/*L*/
+      }
+    }
+    
+    Timed.setTimeout(checkIfChangedAndContinue, BaseVariable.CHECK_POLL_RATE);
+    
+    return true;
+  }
+  
+  /**
+   * Function is responsible for starting this variable to be monitored.
+   * By deafult it will run (if necessary) observer loop and add this variable 
+   * to observed objects pool.
+   */
+  BaseVariable.prototype.startObservingForChanges = function () {
+    this.addToObservedVariables(); // make sure this variable is observed
+    observingStopped = false;
+    checkIfChangedAndContinue();
+  };
+  
+  /**
+   * Function will cause stopping observing this variable - no variable change
+   * events will bepublished any more. If this is a last variable in a pool - it
+   * will also stop the polling engine.
+   */
+  BaseVariable.prototype.stopObservingForChanges = function () {
+    this.removeFromObservedVariables();
+    if (OBSERVED_VARIABLES.length === 0) {
+      observingStopped = true;
+    }
+  };
+  
+  /**
+   * Function adds this variable to the pool.
+   */
+  BaseVariable.prototype.addToObservedVariables = function () {
+    Utils.addToArrayIfNotExist(OBSERVED_VARIABLES, this);
+  };
+  
+  /**
+   * Function removes this variable from the pool.
+   */
+  BaseVariable.prototype.removeFromObservedVariables = function () {
+    Utils.removeFromArray(OBSERVED_VARIABLES, this);
+  };
+  
+  /**
+   * Function returns all variables array that are monitored for changes.
+   */
+  BaseVariable.prototype.getObservedVariables = function () {
+    return OBSERVED_VARIABLES;
+  };
+  
+  /**
+   * Override this method to compare how old variable value is equal to 
+   * new value. currently if `a` was old this.getValue() result, and `b` is new,
+   * `a === b` is returned.
+   * 
+   * @param {Object} a leftside value to be 
+   *                    compared (old value of this.getValue())
+   * @param {Object} b rightside value to be 
+   *                    compared (new value of this.getValue())
+   * @returns {Boolean} if equal
+   */
+  BaseVariable.prototype.valuesAreEqual = function (a, b) {
+    return a === b;
+  };
+  
 }());
 
 
@@ -4349,7 +4490,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -4395,34 +4536,41 @@ q.html.HtmlInjector.getAttributes = function (node) {
   Expression.prototype.getValue = function () {
     var ret;
     var error;
+    var value = this.value;
     try {
-      if (this.value.indexOf("[#]") === -1) {
-        var tmp = Utils.gevalAndReturn(this.value);
+      if (value && value.indexOf("[#]") === -1) {
+        var tmp = Utils.gevalAndReturn(value);
         ret = tmp.result;
         this.failMessage = null;
         error = tmp.error;
       } else {
-        ret = Expression.parseUVArray(this.value);
+        ret = Expression.parseUVArray(value);
       }
     } catch (e) {
       error = e;
     }
     if (error) {
-      var msg = "could not read value of expression: \n" + this.value +
+      var msg = "could not read value of expression: \n" + value +
               "\nexact cause: " + error;
       if (this.failMessage !== msg) {
         this.failMessage = msg;
       }
       ret = null;
     }
+    
+    var differs = this._updateCurrentValue(ret);
+    
     /*log*/
-    Timed.maxFrequent(function () {
-      if (this.failMessage) {
-        this.log.FINEST(this.failMessage);/*L*/
-      }
-      this.log.FINEST("getting value from expression: " + ret);/*L*/
-    }.bind(this), 10000, this._lockExprObject);
+    if (differs) {
+      Timed.maxFrequent(function () {
+        if (this.failMessage) {
+          this.log.FINEST(this.failMessage);/*L*/
+        }
+        this.log.FINEST("getting value from expression: " + ret);/*L*/
+      }.bind(this), 10000, this._lockExprObject);
+    }
     /*~log*/
+    
     return ret;
   };
   
@@ -4478,7 +4626,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -4508,7 +4656,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   DOMText.prototype.getValue = function () {
     this.log.FINEST("reading DOM element contents value");/*L*/
-    return Utils.getElementValue(this.value);
+    var val = Utils.getElementValue(this.value);
+    this._updateCurrentValue(val);
+    return val;
   };
   
 }());
@@ -4519,13 +4669,13 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
 
 (function () {
-  var Timed = qubit.opentag.Timed;
+  var Timed = qubit.opentag.Timed;/*L*/
 
   
   /**
@@ -4556,9 +4706,14 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   Cookie.prototype.getValue = function () {
     var val = qubit.Cookie.get(this.value);
+    
+    /*log*/
     Timed.maxFrequent(function () {
-      this.log.FINEST("reading cookie value: " + val);/*L*/
+      this.log.FINEST("reading cookie value: " + val);
     }.bind(this), 2000, this._lockObject);
+    /*~log*/
+    
+    this._updateCurrentValue(val);
     return val;
   };
   
@@ -4569,7 +4724,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -4602,12 +4757,14 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @returns {String}
    */
   URLQuery.prototype.getValue = function () {
-    return Utils.getQueryParam(this.value);
+    var val = Utils.getQueryParam(this.value);
+    this._updateCurrentValue(val);
+    return val;
   };
 }());
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * @author Piotr (Peter) Fronc <peter.fronc@qubitproducts.com>
  */
@@ -4944,20 +5101,23 @@ q.html.HtmlInjector.getAttributes = function (node) {
    *        -1 if added at end of queue.
    */
   Events.prototype.on = function (name, call) {
-    this.calls[name] = this.calls[name] || [];
+    if (!this.calls[name]) {
+      this.calls[name] = [];
+    }
     return Utils.addToArrayIfNotExist(this.calls[name], call);
   };
   
   /**
    * Function will cause triggering event for given name.
    * @param {String} name Event name
+   * @param {Object} event Event object
    */
-  Events.prototype.call = function (name) {
+  Events.prototype.call = function (name, event) {
     var calls = this.calls[name];
     if (calls) {
       for (var i = 0; i < calls.length; i++) {
         try {
-          calls[i]();
+          calls[i](event);
         } catch (ex) {
           this.log.ERROR("Error while running event: " + ex);/*L*/
         }
@@ -4972,7 +5132,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @returns {undefined}
    */
   Events.prototype.remove = function (name, call) {
-    return Utils.removeFromArray(this.calls[name], call);
+    if (this.calls[name]) {
+      return Utils.removeFromArray(this.calls[name], call);
+    }
+    return null;
   };
   
   /**
@@ -4990,6 +5153,13 @@ q.html.HtmlInjector.getAttributes = function (node) {
     return total;
   };
   
+  /**
+   * Removes all events of any type from this stack.
+   */
+  Events.prototype.clear = function () {
+    this.calls = {};
+  };
+  
   Define.clazz("qubit.Events", Events);
 })();
 
@@ -5005,7 +5175,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -5016,7 +5186,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
   var Timed = qubit.opentag.Timed;
   var TagHelper = qubit.opentag.TagHelper;
   var nameCounter = 0;
-  var Log = qubit.opentag.Log;/*L*/
+  var Log = qubit.opentag.Log;
+
+  var AFTER_EVENT = "after";
+  var BEFORE_EVENT = "before";
 
   /*
    * @TODO - extract lower generic class for a script loader so it is better 
@@ -5104,11 +5277,11 @@ q.html.HtmlInjector.getAttributes = function (node) {
    *  Each property can be set at initialization time via config object.
    */
   function GenericLoader(config) {
-    /*log*/
+    
     this.log = new Log("", function () {
       return this.CLASS_NAME + "[" + this.config.name + "]";
     }.bind(this), "collectLogs");
-    /*~log*/
+
     
     this.urlsLoaded = 0;
     this.urlsFailed = 0;
@@ -5268,7 +5441,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
      * all functions return `true`.
      * @property {Array} Array of functions.
      */
-    this.genericDependencies = this.genericDependencies || [];
+    this.genericDependencies = [];
     
     if (config) {
       this.log.FINE("instance...");/*L*/
@@ -5333,7 +5506,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * When running process executes _scriptExecute, in order:
    * 
    * - All dependencies have been met
-   * - onBefore event has been fired
+   * - onBefore multi-event has been fired
    * - Script URL has been loaded
    * - HTML has been injected
    * 
@@ -5504,7 +5677,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     this.log.FINE("running before handler...");/*L*/
     this.beforeRun = new Date().valueOf();
     try { 
-      this.onBefore();
+      this.events.call(BEFORE_EVENT, this);
     } catch (ex) {
       this.log.ERROR("onBefore error: " + ex);/*L*/
       this._onError(ex);
@@ -5512,6 +5685,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
   };
   
   /**
+   * Multiple event handling method.
+   * 
    * This event fires before entering execution scope.
    * Execution scope includes:
    * 
@@ -5520,9 +5695,13 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * - Injecting HTML
    * 
    * - running `script` function
-   * @event onBefore before event.
+   * @event before before event.
+   * @param {Function} callback function to be executed the BEFORE_EVENT 
+   *                             event fires
    */
-  GenericLoader.prototype.onBefore = EMPTY_FUN;
+  GenericLoader.prototype.onBefore = function (callback) {
+    this.events.on(BEFORE_EVENT, callback);
+  };
 
   /**
    * Callback triggered always after loading - if succesful.
@@ -5533,7 +5712,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
     this.log.FINE("running after...");/*L*/
     this.afterRun =  new Date().valueOf();
     try { 
-      this.onAfter(success);
+      this.events.call(AFTER_EVENT, {
+        success: success,
+        tag: this
+      });
     } catch (ex) {
       this.log.ERROR("onAfter error: " + ex);/*L*/
       this._onError(ex);
@@ -5546,7 +5728,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @event onAfter after event.
    * @param success {Boolean} If the script executed without errors
    */
-  GenericLoader.prototype.onAfter = function (success) {};
+  GenericLoader.prototype.onAfter = function (callback) {
+    this.events.on(AFTER_EVENT, callback);
+  };
   
   /**
    * By using this function one can be sure that script will be executed only
@@ -5782,7 +5966,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
         }
 
         if (cancel) {
-          this.log.INFO("before calback cancelled execution.");/*L*/
+          this.log.INFO("before callback cancelled execution.");/*L*/
           this._markFailure();
           this._markFinished();
           return;
@@ -5851,9 +6035,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
   };
   
   /**
-   * Private marking helper for loader, its is used to mark loaders job
+   * Protected marking helper for loader, its is used to mark loaders job
    * as finished, no matter if job was successful or not.
-   * @private
+   * @protected
    */
   GenericLoader.prototype._markFinished = function () {
     this.runIsFinished = new Date().valueOf();
@@ -6091,11 +6275,19 @@ q.html.HtmlInjector.getAttributes = function (node) {
   GenericLoader.prototype.onStateChange = EMPTY_FUN;
   
   /**
-   * Method cancels the loader.
-   * @returns {undefined}
+   * Method cancels the loader. Note that to be able to use tag, 
+   * `unCancel` must be used.
    */
   GenericLoader.prototype.cancel = function () {
     this.cancelled = new Date().valueOf();
+  };
+  
+  /**
+   * Method un-cancels the loader. Note that whatever execution stopped it will
+   * not be resumed. You need to reset and re-ru tag again.
+   */
+  GenericLoader.prototype.unCancel = function () {
+    this.cancelled = undefined;
   };
   
   /**
@@ -6555,7 +6747,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @event onBeforeLoad
    * Will run before `load()`.
    */
-  GenericLoader.prototype.onBeforeLoad = EMPTY_FUN;
+  GenericLoader.prototype.onBeforeLoad = null;
   
   /**
    * Function used to load this tag itself and its dependencies if 
@@ -6579,7 +6771,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
     } else {
       this.loadStarted = new Date().valueOf();
       try {
-        this.onBeforeLoad();
+        if (this.onBeforeLoad) {
+          this.onBeforeLoad();
+        }
       } catch (ex) {
         this.log.ERROR("onBeforeLoad error: " + ex);/*L*/
         this._onError(ex);
@@ -6872,7 +7066,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -6888,6 +7082,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
   var Cookie = qubit.Cookie;
   var Define = qubit.Define;
   
+  // used in static functions
   var log = new qubit.opentag.Log("BaseTag -> ");/*L*/
 
   /**
@@ -6994,7 +7189,13 @@ q.html.HtmlInjector.getAttributes = function (node) {
        * @cfg locked
        * @type Boolean
        */
-      locked: false
+      locked: false,
+      /**
+       * 
+       * @cfg reRunOnVariableChange
+       * @type Boolean
+       */
+      reRunOnVariableChange: false
     };
     
     Utils.setIfUnset(config, defaults);
@@ -7045,6 +7246,15 @@ q.html.HtmlInjector.getAttributes = function (node) {
      */
     this.session = null;
     
+    /**
+     * Idicates if tag stats has been submitted.
+     * Typically this property is set to true by when tag ping is sent.
+     * Setting this property to true will cause ping not to be sent.
+     * 
+     * @property {Boolean}
+     */
+    this.pingSent = false;
+    
     if (config) {
       this.addState("INITIAL");
 
@@ -7073,6 +7283,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
       }
       
       this.onTagInit();
+      
+      this.handleVariableChange = this._handleVariableChange.bind(this);
     }
   }
   
@@ -7610,7 +7822,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   BaseTag.prototype.addClientVariablesMap = function (map) {
     this.unresolvedClientVariablesMap = 
-      this.addVariablesMap(map, Define.clientSpaceClasspath());
+      this._addVariablesMap(map, Define.clientSpaceClasspath());
     return this.unresolvedClientVariablesMap;
   };
   
@@ -7624,6 +7836,14 @@ q.html.HtmlInjector.getAttributes = function (node) {
       this.unresolvedClientVariablesMap = null;
       this.addClientVariablesMap(map);
     }
+    
+    map = this.unresolvedVariablesMap;
+    
+    if (map) {
+      this.unresolvedVariablesMap = null;
+      this.addVariablesMap(map);
+    }
+    
     return this.getPageVariables();
   };
   
@@ -7632,7 +7852,21 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @param {type} map
    * @returns {undefined}
    */
-  BaseTag.prototype.addVariablesMap = function (map, ns) {
+  BaseTag.prototype.addVariablesMap = function (map) {
+    this.unresolvedVariablesMap = 
+      this._addVariablesMap(map);
+    return this.unresolvedVariablesMap;
+  };
+  
+  /**
+   * @private
+   * 
+   * Function adding variables map with namespace provided - worker function.
+   * 
+   * @param {type} map
+   * @returns {undefined}
+   */
+  BaseTag.prototype._addVariablesMap = function (map, ns) {
     if (!map) {
       return;
     }
@@ -7650,7 +7884,11 @@ q.html.HtmlInjector.getAttributes = function (node) {
           }
           var obj = Utils.getObjectUsingPath(item);
           if (obj) {
-            namedVariables[prop] = item;
+            if (obj instanceof BaseVariable) {
+              namedVariables[prop] = obj;
+            } else {
+              namedVariables[prop] = item;
+            }
           } else {
             unresolvedVariablesMap[prop] = original;
           }
@@ -7966,10 +8204,12 @@ q.html.HtmlInjector.getAttributes = function (node) {
     var u;
     this.filtersPassed = u;
     this.dedupePingSent = u;
-    this.pingSent = u;
+    this.pingSent = false;
     this._runOnceIfFiltersPassTriggered = u;
     this.filtersRunTriggered = u;
     this._runner = u;
+    
+    this.detachVariablesChangedListeners();
   };
   
   /**
@@ -8392,6 +8632,88 @@ q.html.HtmlInjector.getAttributes = function (node) {
     Utils.rmCookiesMatching(forceCookiePrefix);
     BaseTag.rmCookieForcingTagsToRun();
   };
+  
+  /**
+   * Triggered when variables supporting variable change events change.
+   * Currently only QProtocolVariable variables trigger such events.
+   * 
+   * This function start observation process automatically.
+   * 
+   * @param {Function} callback firing when variable value changes
+   */
+  BaseTag.prototype.onVariableChanged = function (callback) {
+    this.attachVariablesChangedListeners();
+    this.events.on("variableChanged", callback);
+  };
+  
+  /**
+   * @private
+   * 
+   * Function is a worker handling variable changed events (currently only
+   * from qprotocol).
+   * 
+   * If tag is not running already - will be reset with filters 
+   * and re-triggered.
+   * 
+   * This handler will also call `this.onVariableChanged(oldValue, variable);`
+   * 
+   * @param {Object} ref event containig "newValue", "oldValue" and "variable"
+   * @param {Object} variable the variable instance
+   */
+  BaseTag.prototype._handleVariableChange = function (ref) {
+    /*~log*/
+    this.log.FINEST("Variable " + ref.variable.CLASSPATH + " changed from : " +
+            ref.oldValue + "to:" +  ref.newValue);
+    /*~log*/
+    
+    this.events.call("variableChanged", ref);
+    
+    if (!this.isRunning && this.config.reRunOnVariableChange) {
+      this.reset();
+      this.resetFilters();
+      this.runIfFiltersPass();
+    }
+  };
+  
+  /**
+   * Function will iterate over all variables and attach this tag handler to
+   * their onchange events.
+   */
+  BaseTag.prototype.attachVariablesChangedListeners = function () {
+    var variables = this.getPageVariables();
+    
+    var startObserving = 
+      this.config.reRunOnVariableChange || this.config.observeVariables;
+    
+    for (var i = 0; i < variables.length; i++) {
+      var variable = variables[i];
+      variable.onValueChanged(this.handleVariableChange, startObserving);
+    }
+  };
+
+  /**
+   * Function will iterate over all variables and detach this tag handler to
+   * their onchange events.
+   */
+  BaseTag.prototype.detachVariablesChangedListeners = function () {
+    var variables = this.getPageVariables();
+    for (var i = 0; i < variables.length; i++) {
+      var variable = variables[i];
+      variable.deatchOnValueChanged(this.handleVariableChange);
+    }
+  };
+
+  /**
+   * @protected
+   * This function gets called when tag finally finishes its normal processing.
+   * This is the function that attaches variables listeners with
+   * `this.attachVariablesChangedListeners()`.
+   */
+  BaseTag.prototype._markFinished = function () {
+    BaseTag.SUPER.prototype._markFinished.call(this);
+    this.attachVariablesChangedListeners();
+  };
+  
 }());
 
 
@@ -8550,11 +8872,15 @@ q.html.HtmlInjector.getAttributes = function (node) {
   /**
    * @static
    * Reset all tags.
+   * @param {Boolean} skipFilters if should reset with filters.
    */
-  Tags.resetAll = function () {
+  Tags.resetAll = function (skipFilters) {
     var tags = Tags.getTags();
     for (var i = 0; i < tags.length; i++) {
       tags[i].reset();
+      if (!skipFilters) {
+        tags[i].resetFilters();
+      }
     }
   };
 
@@ -10831,7 +11157,7 @@ var JSON = {};
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -11113,7 +11439,7 @@ var JSON = {};
     var constructor = function (cfg) {
       //update instance properties for new defaults
       cfg = cfg || {};
-      cfg = Utils.overrideFromBtoA(libraryDefaultConfig, cfg);
+      cfg = Utils.overrideFromLeftToRight(libraryDefaultConfig, cfg);
       
       // --- standard ---
       //run library standard constructor
@@ -11151,7 +11477,7 @@ var JSON = {};
 
 /*
  * Opentag, a tag deployment platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -11204,7 +11530,7 @@ var JSON = {};
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -11420,6 +11746,15 @@ var JSON = {};
           this.log.ERROR("init call failed:" + ex);/*L*/
         }
       }
+      
+      var _this = this;
+      
+      this._tagLoadedHandler = function (event) {
+        _this.sendPingsNotTooOften();
+        if (event.success) {
+          event.tag.log.INFO("[Other]SENDING LOAD STATS");/*L*/
+        }
+      };
     }
     
     return this;
@@ -11619,6 +11954,7 @@ var JSON = {};
       this.log.FINE("Tag with name `" + name + "` already is registered!");/*L*/
     } else {
       this.tags[name] = tag;
+      tag.onAfter(this._tagLoadedHandler);
       try {
         this.onTagRegistered(tag);
       } catch (ex) {
@@ -12248,12 +12584,10 @@ var JSON = {};
       loadTimes = Tags.getLoadTimes();
       var deduplicatedTagsToBeSent = [];
       for (i = 0; i < loadTimes.length; i++) {
-        (function (j) {
-          var tag = loadTimes[j].tag;
-          if (tag.config.dedupe && tag.sendDedupePing) {
-            deduplicatedTagsToBeSent.push(tag);
-          }
-        }(i));
+        var tag = loadTimes[i].tag;
+        if (tag.config.dedupe && tag.sendDedupePing) {
+          deduplicatedTagsToBeSent.push(tag);
+        }
       }
       if (deduplicatedTagsToBeSent.length > 0) {
         this.log.INFO("Sending deduplication pings");/*L*/
@@ -12266,18 +12600,7 @@ var JSON = {};
         loadTimes = Tags.getLoadTimes(results.other);
         var otherTagsToBeSent = [];
         for (i = 0; i < loadTimes.length; i++) {
-          (function (j) {
-            var tag = loadTimes[j].tag;
-            otherTagsToBeSent.push(loadTimes[j]);
-            var after = tag.onAfter;
-            tag.onAfter = function (success) {
-              after.call(tag, success);
-              _this.sendPingsNotTooOften();
-              if (success) {
-                tag.log.INFO("[Other]SENDING LOAD STATS");/*L*/
-              }
-            };
-          }(i));
+          otherTagsToBeSent.push(loadTimes[i]);
         }
         
         //in case tags are fired and method used separately
@@ -12291,19 +12614,7 @@ var JSON = {};
         loadTimes = Tags.getLoadTimes(results.awaiting);
         var awaitingTagsToBeSent = [];
         for (i = 0; i < loadTimes.length; i++) {
-          (function (j) {
-            var tag = loadTimes[j].tag;
-            awaitingTagsToBeSent.push(loadTimes[j]);
-
-            var after = tag.onAfter;
-            tag.onAfter = function (success) {
-              after.call(tag, success);
-              _this.sendPingsNotTooOften();
-              if (success) {
-                tag.log.INFO("[Awaiting]SENDING LOAD STATS");/*L*/
-              }
-            };
-          }(i));
+          awaitingTagsToBeSent.push(loadTimes[i]);
         }
         
         //in case tags are fired and method used separately
@@ -12531,7 +12842,7 @@ var JSON = {};
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -12886,6 +13197,8 @@ var JSON = {};
 
   q.html.UVListener = UVListener;
 }());
+/* global qubit, GLOBAL, q */
+
 
 
 
@@ -12933,6 +13246,8 @@ var JSON = {};
   qubit.opentag.Log.setLevel(qubit.opentag.Log.LEVEL_INFO);/*L*/
   qubit.opentag.Log.setCollectLevel(4);/*L*/
   /*~debug*/
+
+  qubit.opentag.Log.setLevelFromCookie();
 
   /**
    * Default runner method for opentag program. It decides on all aspects of 
@@ -13004,7 +13319,8 @@ var JSON = {};
   /**
    * Function running all containers - if debug option  is chosen, opentag will
    * try to reload itself with debugging logs enabled.
-   * @param {Boolean} loadDebug if debug mode scripts must be loaded
+   * @param {Boolean} needDebugModeButNotInDebug 
+   *                                    if debug mode scripts must be loaded
    * @returns {undefined}
    */
   Main.runAllContainers = function (needDebugModeButNotInDebug) {
@@ -13110,12 +13426,523 @@ var JSON = {};
 
   qubit.Define.namespace("qubit.opentag.Main", Main);
 }());
+/**
+ * Export the api to window.uv unless required as a commonjs module.
+ */
+if (typeof module === 'object' && module.exports) {
+  module.exports = createUv
+} else if (window) {
+  window.uv = createUv()
+}
+
+function createUv () {
+  /**
+   * Used to prevent recursive event calling.
+   *
+   * @type {Array}
+   */
+  var emittingEvents = []
+
+  /**
+   * Creates the uv object with empty
+   * events and listeners arrays.
+   *
+   * @type {Object}
+   */
+  var uv = {
+    emit: emit,
+    on: on,
+    once: once,
+    events: [],
+    listeners: []
+  }
+
+  return uv
+
+  /**
+   * Pushes an event to the events array and triggers any handlers for that event
+   * type, passing the data to that handler. Clones the data to prevent side effects.
+   *
+   * @param {String} type The type of event.
+   * @param {Object} data The data associated with the event.
+   */
+  function emit (type, data) {
+    data = clone(data || {})
+    data.meta = data.meta || {}
+    data.meta.type = type
+    emittingEvents.push(data)
+    if (emittingEvents.length === 1) {
+      callHandlers(emittingEvents[0])
+    }
+
+    /**
+     * Remove disposed listeners
+     * to prevent memory leak.
+     */
+    uv.listeners = filter(uv.listeners, function (l) {
+      return !l.disposed
+    })
+  }
+
+  /**
+   * Calls all the handlers matching an event.
+   *
+   * @param  {Object} event
+   */
+  function callHandlers (event) {
+    uv.events.push(event)
+    forEach(uv.listeners, function (listener) {
+      if (listener.disposed) return
+      if (!matches(listener.type, event.meta.type)) return
+      try {
+        listener.callback.call(listener.context, event)
+      } catch (e) {
+        if (console && console.error) {
+          console.error('Error emitting UV event', e.stack)
+        }
+      }
+    })
+    emittingEvents.shift()
+    if (emittingEvents.length > 0) {
+      callHandlers(emittingEvents[0])
+    }
+  }
+
+  /**
+   * Attaches an event handler to listen to the type of event specified.
+   *
+   * @param   {String|Regex} type         The type of event.
+   * @param   {Function}     callback     The callback called when the event occurs.
+   * @param   {Object}       context      The context that will be applied to the
+   *                                      callback (optional).
+   *
+   * @returns {Object}                    A subscription object that
+   *                                      returns a dispose method.
+   */
+  function on (type, callback, context) {
+    var listener = {
+      type: type,
+      callback: callback,
+      disposed: false,
+      context: context || window
+    }
+    uv.listeners.push(listener)
+
+    var subscription = {
+      replay: replay,
+      dispose: dispose
+    }
+    return subscription
+
+    function replay () {
+      forEach(uv.events, function (event) {
+        if (listener.disposed) return
+        if (!matches(type, event.meta.type)) return
+        callback.call(context, event)
+      })
+      return subscription
+    }
+
+    function dispose () {
+      listener.disposed = true
+      return subscription
+    }
+  }
+
+  /**
+   * Attaches an event handler to listen to the type of event specified.
+   * The handle will only be executed once.
+   *
+   * @param   {String|Regex} type     The type of event.
+   * @param   {Function}     callback The callback called when the event occurs.
+   * @param   {Object}       context  The context that will be applied
+   *                                  to the callback (optional).
+   *
+   * @returns {Object}                A subscription object which can off the
+   *                                  handler using the dispose method.
+   */
+  function once (type, callback, context) {
+    var subscription = uv.on(type, function () {
+      callback.apply(context || window, arguments)
+      subscription.dispose()
+    })
+    return subscription
+  }
+
+  /**
+   * Iterate over each item in an array.
+   *
+   * @param  {Array} list
+   * @param  {Function} iterator
+   */
+  function forEach (list, iterator) {
+    var length = list.length
+    for (var i = 0; i < length; i++) {
+      iterator(list[i], i)
+    }
+  }
+
+  /**
+   * Returns a shallow clone of the input
+   * object.
+   * @param  {Object} input
+   *
+   * @return {Object}
+   */
+  function clone (input) {
+    var output = {}
+    for (var key in input) {
+      if (input.hasOwnProperty(key)) {
+        output[key] = input[key]
+      }
+    }
+    return output
+  }
+
+  /**
+   * Returns true if the test string matches
+   * the subject or the test regex matches the subject.
+   * @param  {String|Regex} test
+   * @param  {String}       subject
+   *
+   * @return {Boolean}
+   */
+  function matches (test, subject) {
+    return typeof test === 'string' ? test === subject : test.test(subject)
+  }
+
+  /**
+   * Returns a new array containing the items in
+   * array for which predicate returns true.
+   * @param  {Array}   list
+   * @param  {Function} iterator
+   *
+   * @return {Array}
+   */
+  function filter (list, iterator) {
+    var l = list.length
+    var output = []
+    for (var i = 0; i < l; i++) {
+      if (iterator(list[i])) output.push(list[i])
+    }
+    return output
+  }
+}
+/* global qubit */
+
+
+
+
+
+/*
+ * Opentag, a tag deployment platform.
+ * Copyright (C) 2011-2016, Qubit.com
+ * All rights reserved.
+ * 
+ * @author peter.fronc@qubit.com
+ */
+
+var allEventsByType = {};
+var unqueuedEvents = [];
+
+var inititated = false;
+var inititatedSuccessfully = false;
+
+var global = qubit.Define.global();
+
+function getUV() {
+  return global.uv;
+}
+
+function initiate() {
+  var uv = getUV();
+  
+  if (!uv || !uv.emit) {
+    return false;
+  }
+  
+  if (!inititated) {
+    inititated = true;
+    
+    // bring back any awaiting events
+    for (var i = 0; i < unqueuedEvents.length; i++) {
+      var tmp = unqueuedEvents[i];
+      if (tmp.on) {
+        uv.on.apply(uv, tmp.on);
+      } else if (tmp.emit) {
+        uv.emit.apply(uv, tmp.emit);
+      }
+    }
+    
+    uv.on(/.*/, function (event) {
+      var type = event.meta.type;
+      var obj = allEventsByType[type];
+
+      if (!obj) {
+        allEventsByType[type] = {current: event, history: [event]};
+      } else {
+        obj.current = event;
+        obj.history.push(event);
+      }
+    }).replay();
+    
+    inititatedSuccessfully = true;
+  }
+  
+  return true;
+}
+
+var PubSub = {
+  
+  allEventsByType: allEventsByType,
+  
+  
+  subscribe: function (eventName, callback) {
+    if (inititatedSuccessfully) {
+      var uv = getUV();
+      uv.on.call(uv, eventName, callback);
+    } else {
+      unqueuedEvents.push({on: [eventName, callback]});
+    }
+  },
+  
+  getEventHistory: function (name) {
+    return this.allEventsByType[name];
+  },
+  
+  /**
+   * QProtocol event emmiter wrapper for opentag.
+   * 
+   * Always use this API to emit qprotocol events if you use opentag and not
+   * uv-api directly.
+   * 
+   * @param {String} eventName event.meta.type used in qprotocol.
+   * @param {Object} event Obect that will be dispatched.
+   */
+  publish: function (eventName, event) {
+    if (inititatedSuccessfully) {
+      var uv = getUV();
+      uv.emit.call(uv, eventName, event);
+    } else {
+      unqueuedEvents.push({emit: [eventName, event]});
+    }
+  },
+  
+  /**
+   * 
+   * This is the function that enables the QProtocol wiring for opentag.
+   * It is run immediately after this class declaration.
+   */
+  connect: function () {
+    initiate();
+  }
+};
+
+// initialize the PubSub, later on the uv-api may not be added into opentag
+// and therefore excluded
+PubSub.connect();
+
+qubit.Define.namespace("qubit.qprotocol.PubSub", PubSub);
+
+
+
+
 
 
 
 /*
  * TagSDK, a tag development platform
- * Copyright 2013-2014, Qubit Group
+ * Copyright 2013-2016, Qubit Group
+ * http://opentag.qubitproducts.com
+ * Author: Peter Fronc <peter.fronc@qubitdigital.com>
+ */
+
+(function () {
+  
+  var PubSub = qubit.qprotocol.PubSub;
+  var Utils = qubit.opentag.Utils;
+  var DELIMITER = ":";
+
+  /**
+   * #QProtocolVariable type variable class.
+   * 
+   * This is a page variable that makes it easy to read and listen to incoming
+   * qprotocol events. 
+   * 
+   * QProtocol does support value changed event handlers and handlers can be 
+   * added using `this.onValueChanged(callback)` function. 
+   * Callback will receive oldValue and variable instance reference as 
+   * parameters.
+   * 
+   * Example:
+   * ```
+   *    varRef.onValueChanged(function(oldValue, variableRef){
+   *      console.log(variableRef.getValue() !== oldValue); // true
+   *    });
+   * ```
+   * 
+   * See properties to check on configuration options.
+   * 
+   * Author: Peter Fronc <peter.fronc@qubitdigital.com>
+   * 
+   * @class qubit.opentag.pagevariable.QProtocolVariable
+   * @extends qubit.opentag.pagevariable.BaseVariable
+   * @param config {Object} config object used to build instance
+   */
+  function QProtocolVariable(config) {
+    QProtocolVariable.SUPER.apply(this, arguments);
+  }
+  
+  qubit.Define.clazz(
+          "qubit.opentag.pagevariable.QProtocolVariable",
+          QProtocolVariable,
+          qubit.opentag.pagevariable.BaseVariable);
+  
+  /**
+   * Init function is called by `getValue()`
+   */
+  QProtocolVariable.prototype.init = function () {
+    if (this.initialized) {
+      return false;
+    } else {
+      // mark first use
+      this.initialized = new Date().valueOf();
+    }
+    
+    this.callHandlersOnRead = true;
+    
+    /**
+     * Event name that this variable listens to. 
+     * Its the `meta.type` property in qprotocol event object.
+     * 
+     * Value can also contain optional object path that will be accessed.
+     * 
+     * Path property indicates which event object child should be
+     * used as this variable output value (normally event object is).
+     * 
+     * It may be usefult to not to have to check long object paths when
+     * accessing directly event (eq. code like: `a && a.b && a.b.c && a.b.c.d` to
+     * access `a.b.c.d` only).
+     * 
+     * Example: 
+     * 
+     * uv.variable.in.event@my.event.name
+     * 
+     * reference.     * 
+     * @property {String} value - event name (event.meta.type)
+     */
+    
+    if (!this.handlerAttached) {
+      var _this = this;
+      
+      var result = this.getValueAndPath(this.value);
+      
+      this.eventName = result[0];
+      this.objectPath = result[1];
+      
+      this.updateValue();
+      
+      PubSub.subscribe(this.eventName, function (event) {
+        _this.updateValue(event);
+      });
+      
+      this.handlerAttached = new Date().valueOf();
+    }
+  };
+  
+  QProtocolVariable.prototype.getValueAndPath = function (value) {
+    var eventName = value;
+    var opath;
+
+    if (eventName) {
+      var idx = value.indexOf(DELIMITER);
+      if (idx !== -1) {
+        if (idx > 0) {
+          eventName = value.substring(0, idx);
+          opath = value.substring(idx + 1);
+        }
+      }
+    }
+
+    return [eventName, opath];
+  };
+  
+  QProtocolVariable.prototype.getValue = function () {
+    this.init();
+    return this.currentValue;
+  };
+  
+  /**
+   * Function returns event hitory object that contains following properties:
+   * - `current` property, pointing to most recent qprotocol event that this 
+   *    page variable listens to.
+   * - `history` property that points to array containing all events that 
+   *    were published.
+   * 
+   * In general:
+   * ```
+   *     this.getEventsHistory().current === this.getEventsHistory().history[0]
+   * ```
+   * 
+   * @returns {Object} event history object.
+   */
+  QProtocolVariable.prototype.getEventsHistory = function () {
+    return PubSub.getEventHistory(this.eventName);
+  };
+  
+  /**
+   * Function is a worker used to update current variable state.
+   * 
+   * It is possible to overload/reimplement this method where necessary.
+   * 
+   * Normaqlly it updates current value when new event is incoming 
+   * from uv-api.
+   * 
+   * This function is used directly by
+   * @param {Object} event optional event.
+   * @returns {Object} the current value.
+   */
+  QProtocolVariable.prototype.updateValue = function (event) {
+    var history = this.getEventsHistory();
+    if (history) {
+      event = history.current;
+    }
+    
+    var newValue;
+    var opath = this.objectPath;
+    
+    if (event && opath) {
+      newValue = Utils.getObjectUsingPath(opath, event);
+    } else {
+      newValue = event;
+    }
+
+    this._updateCurrentValue(newValue);
+    
+    return newValue;
+  };
+  
+  /**
+   * Disabled for QProtocol - qprotocol handles event by itself.
+   */
+  QProtocolVariable.prototype.startObserving = function () {
+    // this variable manages itself all updates
+  };
+  
+  /**
+   * Disabled for QProtocol - qprotocol handles event by itself.
+   */
+  QProtocolVariable.prototype.stopObserving = function () {
+    // this variable manages itself all updates
+  };
+  
+}());
+
+
+
+/*
+ * TagSDK, a tag development platform
+ * Copyright 2013-2016, Qubit Group
  * http://opentag.qubitproducts.com
  * Author: Peter Fronc <peter.fronc@qubitdigital.com>
  */
@@ -13148,5 +13975,4 @@ var JSON = {};
           UniversalVariable,
           qubit.opentag.pagevariable.Expression);
 }());
-
 }());

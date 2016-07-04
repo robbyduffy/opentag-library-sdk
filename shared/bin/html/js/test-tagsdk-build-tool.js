@@ -24,7 +24,7 @@ var UNDEF = undefined;
 global.APP_PATH = global.APP_PATH || "/";
 global.LIBRARIES_REPO_LOC = global.LIBRARIES_REPO_LOC || "/";
 
-/*NO LOG*/
+
 /* jshint white: false */
 
 (function () {
