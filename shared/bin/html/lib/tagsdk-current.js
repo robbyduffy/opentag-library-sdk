@@ -4218,10 +4218,11 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   BaseVariable.prototype._updateCurrentValue = function (newValue) {
     if (!this.valuesAreEqual(newValue, this.currentValue)) {
-      if (!observingStopped || this.callHandlersOnRead) {
-        this._handleValueChanged(this.currentValue, newValue);
-      }
+      this.oldValue = this.currentValue;
       this.currentValue = newValue;
+      if (!observingStopped || this.callHandlersOnRead) {
+        this._handleValueChanged();
+      }
       return true;
     }
     return false;
@@ -4369,14 +4370,11 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @protected
    * 
    * Protected helper handling value changed.
-   * 
-   * @param {Object} oldValue
-   * @param {Object} newValue
    */
-  BaseVariable.prototype._handleValueChanged = function (oldValue, newValue) {
+  BaseVariable.prototype._handleValueChanged = function () {
     var event = {
-      oldValue: oldValue,
-      newValue: newValue,
+      oldValue: this.oldValue,
+      newValue: this.currentValue,
       variable: this
     };
     
@@ -13905,9 +13903,11 @@ qubit.Define.namespace("qubit.qprotocol.PubSub", PubSub);
    * @returns {Object} the current value.
    */
   QProtocolVariable.prototype.updateValue = function (event) {
-    var history = this.getEventsHistory();
-    if (history) {
-      event = history.current;
+    if (!event) {
+      var history = this.getEventsHistory();
+      if (history) {
+        event = history.current;
+      }
     }
     
     var newValue;
