@@ -106,6 +106,8 @@ try {
 //shortcuts
 var EMPTY_FUN = function () {};
 var UNDEF;
+/* global GLOBAL */
+
 
 
 /*
@@ -207,6 +209,10 @@ var UNDEF;
     
     if (GLOBAL.TAGSDK_NS_OVERRIDE) {
       noOverride = false;
+    }
+    
+    if (GLOBAL.TAGSDK_NS_FORCED_OVERRIDE_OPTION !== undefined) {
+      noOverride = !GLOBAL.TAGSDK_NS_FORCED_OVERRIDE_OPTION;
     }
     
     if (instance !== undefined) {
@@ -13256,6 +13262,15 @@ var JSON = {};
   }
 
   function disabled() {
+    try {
+      var fun = GLOBAL.TAGSDK_MAIN_DISABLED_FUNCTION;
+      if (fun && fun()) {
+        return true;
+      }
+    } catch (ex) {
+      log.ERROR("Buggy GLOBAL.TAGSDK_MAIN_DISABLED_FUNCTION ?\n " + ex); /*L*/
+    }
+    
     if (document.location.href.indexOf("opentag_disabled=true") >= 0) {
       return true;
     }
