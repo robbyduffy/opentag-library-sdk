@@ -44,7 +44,6 @@ global.LIBRARIES_REPO_LOC = global.LIBRARIES_REPO_LOC || "/";
    * /Global_Objects/Function/bind
    * 
    */
-  //bind check:
   if (!Function.prototype.bind) {
     Function.prototype.bind = function (oThis) {
       if (typeof this !== 'function') {
@@ -71,17 +70,17 @@ global.LIBRARIES_REPO_LOC = global.LIBRARIES_REPO_LOC || "/";
 }());
 
 
-//PKG_ROOT is the default packaging root.
+// PKG_ROOT is the default packaging root.
 var PKG_ROOT = {__anonymous__: true};
 var GLOBAL = null;
-//remove this block to hide implementation
+// remove this block to hide implementation
 try {
   GLOBAL = (false || eval)("this") || (function () { return this; }());
 } catch (e) {}
 
-//direct reference, is referred everywhere
-//GLOBAL will ALWAYS refer to shared global scope, either in node or browser
-//however, entire classpath can be hidden, if necessary
+// direct reference, is referred everywhere
+// GLOBAL will ALWAYS refer to shared global scope, either in node or browser
+// however, entire classpath can be hidden, if necessary
 PKG_ROOT = GLOBAL; //$anonymous or not
 
 var qubit = PKG_ROOT.qubit || {};
@@ -89,7 +88,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.0.2-r10";
+var qversion = "3.1.0";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -103,7 +102,7 @@ try {
   module.exports = PKG_ROOT;
 } catch (e) {}
 
-//shortcuts
+// shortcuts
 var EMPTY_FUN = function () {};
 var UNDEF;
 /* global GLOBAL */
@@ -140,7 +139,7 @@ var UNDEF;
     return GLOBAL;
   };
 
-  //keep those next to each other
+  // keep those next to each other
   Define.STANDARD_CS_NS = "qubit.cs";
   Define.clientSpaceClasspath = function () {
     if (window.qubit.CLIENT_CONFIG) {
@@ -183,7 +182,7 @@ var UNDEF;
 
   function _namespace(path, instance, pckg, noOverride, isGlobal) {
     var files = path.split("."),
-      //access eval INDIRECT so it is called globally
+      // access eval INDIRECT so it is called globally
       current = Define.NAMESPACE_BASE || PKG_ROOT,
       last = null,
       lastName = null,
@@ -275,8 +274,8 @@ var UNDEF;
   Define.clazz = function (path, Class, SuperClass, pckg, config) {
     Define.namespace(path, Class, pckg, true);
     if (typeof(SuperClass) === "function") {
-      Class.SUPER = SuperClass;//also used by Utils.defineWrappedClass
-      Class.superclass = SuperClass; //deprecated use SUPER
+      Class.SUPER = SuperClass;// also used by Utils.defineWrappedClass
+      Class.superclass = SuperClass; // deprecated use SUPER
       Class.prototype = new SuperClass(config);
       Class.prototype.SUPER = SuperClass;
       Class.prototype.CLASS = Class;
@@ -409,7 +408,7 @@ var UNDEF;
    * @returns {String} decoded string
    */
   Cookie.decode = function (string) {
-    return unescape(string); //old version compatibility
+    return unescape(string); // old version compatibility
   };
   /**
    * @static
@@ -773,7 +772,7 @@ var UNDEF;
     return null;
   };
   
-  //private helper for objectCopy
+  // private helper for objectCopy
   var travelArray = [];
   function existsInPath(object, copy) {
     var len = travelArray.length;
@@ -881,7 +880,7 @@ var UNDEF;
         }
       } catch (ie) {
         if (obj instanceof ActiveXObject && obj.nodeType !== undefined) {
-          return obj; //IE case, no comment
+          return obj; // IE case, no comment
         }
       }
       if (obj === document) {
@@ -904,7 +903,7 @@ var UNDEF;
     if (!noFunctions && obj instanceof Function) {
       var funStr = String(obj).replace(/\s+/g, "");
       if ((funStr.indexOf("{[nativecode]}") + 14) === funStr.length) {
-        //native case
+        // native case
         copy = function () {
           return obj.apply(parentObj || this, arguments);
         };
@@ -1023,18 +1022,18 @@ var UNDEF;
     if (!cfg || !cfg.nodes) {
       try {
         if (obj instanceof Node) {
-          //dont follow those objects
+          // dont follow those objects
           return;
         }
       } catch (ie) {
         if (obj instanceof ActiveXObject && obj.nodeType !== undefined) {
-          return; //IE case, no comment
+          return; // IE case, no comment
         }
       }
     }
     
     if (obj === global) {
-      //dont follow those objects
+      // dont follow those objects
       return;
     }
 
@@ -1051,7 +1050,7 @@ var UNDEF;
     parent = parent || obj;
 
     if (parent && prop && (parent[prop] !== parent[prop])) {
-      //live getters will be ommited
+      // live getters will be ommited
       return;
     }
 
@@ -1133,7 +1132,7 @@ var UNDEF;
           prototypeTemplate,
           pckg,
           constr) {
-    //or anonymous:
+    // or anonymous:
     var clazz = function () {
       if (constr) {
         return constr.apply(this, arguments);
@@ -1142,10 +1141,10 @@ var UNDEF;
       }
     };
         
-    //publish class
+    // publish class
     Define.clazz(classPath, clazz, extClass, pckg);
     
-    //pass prototype objects
+    // pass prototype objects
     for (var prop in prototypeTemplate) {
       if (prototypeTemplate.hasOwnProperty(prop) && prop !== "CONSTRUCTOR") {
         clazz.prototype[prop] = prototypeTemplate[prop];
@@ -1342,7 +1341,7 @@ var UNDEF;
     
     expression  = prefix + expression + suffix;
 
-    //must be geval
+    // must be geval
     Utils.geval(expression);
 
     var res = G.qubitopentagutilsgevalandreturn__var_test__;
@@ -1414,7 +1413,7 @@ var UNDEF;
    */
   Utils.geval = function (expression) {
     if (window && window.execScript) {
-      //ie9-10 doesn't like empty strings.
+      // ie9-10 doesn't like empty strings.
       return window.execScript(expression === "" ? " " : expression);
     } else {
       return (function () {return global["eval"].call(global, expression); }());
@@ -1569,7 +1568,7 @@ var UNDEF;
     };
 
 
-    //The DOM ready check for Internet Explorer
+    // The DOM ready check for Internet Explorer
     doScrollCheck = function () {
       if (isReady) {
         return;
@@ -1636,7 +1635,7 @@ var UNDEF;
       }
     };
 
-    //Handle when the DOM is ready
+    // Handle when the DOM is ready
     var ready = function (fn) {
       // Attach the listeners
       bindReadyComplete();
@@ -1649,7 +1648,7 @@ var UNDEF;
       }
     };
 
-    //Cleanup functions for the document ready method
+    // Cleanup functions for the document ready method
     if (document.addEventListener) {
       DOMContentLoaded = function () {
         document.removeEventListener("DOMContentLoaded",
@@ -1787,7 +1786,7 @@ var UNDEF;
   Log.prototype.MAX_LOG_LEN = -1;
   
   var LEVEL = Log.LEVEL_NONE;
-  LEVEL = Log.LEVEL_INFO;/*D*/ //line deleted during merge
+  LEVEL = Log.LEVEL_INFO;/*D*/ // line deleted during merge
   
   var COLLECT_LEVEL = Log.LEVEL_NONE;
   COLLECT_LEVEL = Log.LEVEL_FINE; /*D*/
@@ -1956,13 +1955,13 @@ var UNDEF;
         }
       }
     } catch (ex) {
-      //for sanity
+      // for sanity
     } finally {
       LEVEL = oldLevel;
     }
   };
   
-  //check if webkit or mozilla is present, for styling loos choice is fine
+  // check if webkit or mozilla is present, for styling loos choice is fine
   var tmp = Define.global();
   var isStylingSupported = 
     !!(tmp.webkitMediaStream || tmp.webkitURL || tmp.mozContact);
@@ -1974,7 +1973,7 @@ var UNDEF;
     return isStylingSupported;
   };
   
-  //dummy for now
+  // dummy for now
   var altConsole = {};
   /**
    * 
@@ -2015,11 +2014,11 @@ var UNDEF;
       var delay = Log.delayPrint;
       var ago = _last_run - new Date().valueOf();
       if (ago > 0) {
-        //_count_close_msgs meassures how many times print was called in
-        //lower than default scale
+        // _count_close_msgs meassures how many times print was called in
+        // lower than default scale
         delay += ago;
       }
-      try { //try delayed option, if package exists
+      try { // try delayed option, if package exists
         qubit.opentag.Timed.setTimeout(function () {
           this.print(message, style, type, level);
         }.bind(this), delay);
@@ -2054,7 +2053,7 @@ var UNDEF;
    * @param {Number} level number
    */
   Log.print = function (message, style, type, level) {
-    //pre-eliminary step
+    // pre-eliminary step
     if (level !== undefined && LEVEL < level) {
       return;
     }
@@ -2075,7 +2074,7 @@ var UNDEF;
         }
       }
     } catch (ex) {
-      //swollow...
+      // swollow...
     }
   };
   
@@ -2205,7 +2204,7 @@ var UNDEF;
     }
   }
   
-  //it is important it is not in one line. New build will strip logs for release
+  // it is important it is not in one line. New build will strip logs for release
   /**
    * @method
    * Finest level logging function.
@@ -2648,7 +2647,7 @@ q.html.fileLoader.load = function (url, preLoadAction, postLoadHandler,
     };
   };
   
-  //try to run the preLoadAction.
+  // try to run the preLoadAction.
   try {
     if (preLoadAction) {
       preLoadResult = preLoadAction(url);
@@ -2658,11 +2657,11 @@ q.html.fileLoader.load = function (url, preLoadAction, postLoadHandler,
     postLoadHandler(url, "Exception loading pre", true);
   } finally {
     if (preLoadResult !== false) {
-      //create the javascript element.
+      // create the javascript element.
       scriptEl = q.html.fileLoader.createScriptEl(url, async, 
           false, attributes);
-      //assign the post load handler to run when it has loaded, 
-      //if it exists.
+      // assign the post load handler to run when it has loaded, 
+      // if it exists.
       if (postLoadHandler) {
         scriptEl.onload = doPostLoad(false);
         scriptEl.onerror = doPostLoad(true);
@@ -2680,7 +2679,7 @@ q.html.fileLoader.load = function (url, preLoadAction, postLoadHandler,
       }
       
       parentNode.appendChild(scriptEl);
-      //The script is not loaded until it is added to the script.
+      // The script is not loaded until it is added to the script.
       
     }
   }
@@ -2690,15 +2689,15 @@ q.html.fileLoader.createScriptEl = function (path, async, forceReload, attr) {
   scriptEl.type = "text/javascript";
   scriptEl.src = q.html.fileLoader.tidyUrl(path) + 
     (forceReload ? ("?" + new Date().getTime()) : "");
-  //Makes FF (version < 4) behave like IE/WebKit 
+  // Makes FF (version < 4) behave like IE/WebKit 
   //(this is on bydefault on FF4+)
-  //See: https://developer.mozilla.org/en/html/element/script
+  // See: https://developer.mozilla.org/en/html/element/script
   if (async !== false) {
     scriptEl.async = "true";
     scriptEl.defer = "true";
   } else {
-    //TODO investigate whether scriptEl.async = false is enough in all browsers
-    //in that case we don't need this mysterious if statement
+    // TODO investigate whether scriptEl.async = false is enough in all browsers
+    // in that case we don't need this mysterious if statement
     scriptEl.async = "false";
     if (scriptEl.async !== false) {
       scriptEl.async = false;
@@ -2834,7 +2833,7 @@ q.html.fileLoader.tidyUrl = function (path) {
    *     {
    *        DISABLED: -3,
    *        SESSION: -2,
-   *        PASS: -1, //positive numbers are used for timeout
+   *        PASS: -1, // positive numbers are used for timeout
    *        FAIL: 0
    *     }; 
    * 
@@ -2844,7 +2843,7 @@ q.html.fileLoader.tidyUrl = function (path) {
   BaseFilter.state = {
     DISABLED: -3,
     SESSION: -2,
-    PASS: -1, //positive numbers are used for timeout
+    PASS: -1, // positive numbers are used for timeout
     FAIL: 0
   };
 
@@ -3093,7 +3092,7 @@ q.html.fileLoader.tidyUrl = function (path) {
    */
   URLFilter.prototype.match = function (url) {
     url = this.getURL(url);
-    var match = true; //be optimist
+    var match = true; // be optimist
     var pattern = this.config.pattern;
     
     switch (this.config.patternType) {
@@ -3198,14 +3197,14 @@ q.html.fileLoader.tidyUrl = function (path) {
        * @param {Function} ready
        * @param {qubit.opentag.BaseTag} tag
        */
-      //customStarter: null,
+      // customStarter: null,
       /**
        * Script deciding either script matches or not (top API level).
        * @cfg {Function}
        * @param {qubit.opentag.Session} session
        * @returns {Boolean}
        */
-      //customScript: null
+      // customScript: null
     };
     
     if (config) {
@@ -3248,7 +3247,7 @@ q.html.fileLoader.tidyUrl = function (path) {
     ready(false);
   };
   
-//  //must be same as in the Filter.js template in repo templates
+//  // must be same as in the Filter.js template in repo templates
 //  var customStarterTemplate = 
 //          "function (session, cb) {cb(false);}";
 //  var customScriptTemplate = 
@@ -3320,29 +3319,29 @@ q.html.fileLoader.tidyUrl = function (path) {
    * @param {qubit.opentag.BaseTag} tag
    */
   Filter.prototype.runTag = function (tag) {
-    //remember associated tags to run
+    // remember associated tags to run
     Utils.addToArrayIfNotExist(this.tagsToRun, tag);
-    //queue execution if starter didnt fire
+    // queue execution if starter didnt fire
     if (!this.starterExecuted) {
-      //first time running runTag? Trigger starter.
+      // first time running runTag? Trigger starter.
       if (!this._starterWasRun) {
-        //enter "customStarter", only once
+        // enter "customStarter", only once
         this._starterWasRun = true;
-        //prepare callback
+        // prepare callback
         var callback = function (rerun) {
-          //mark starterExecuted on filter so any next tags will be fired immediately,
-          //rather than queued for execution.
+          // mark starterExecuted on filter so any next tags will be fired immediately,
+          // rather than queued for execution.
           this.reRun = rerun;
           this.starterExecuted = new Date().valueOf();
           this._processQueuedTagsToRun();
-          //done
+          // done
         }.bind(this);
 
         if (this.customStarter) {
-          //default starter executes immediately
+          // default starter executes immediately
           this.customStarter(this.getSession(), callback, tag);
         } else {
-          //if unset - used default
+          // if unset - used default
           Filter.prototype.customStarter.call(
             this,
             this.getSession(),
@@ -3351,8 +3350,8 @@ q.html.fileLoader.tidyUrl = function (path) {
         }
       }
     } else {
-      //if the starter was executed, run tags immediately
-      //hasnt be called, tags are queued to execute.
+      // if the starter was executed, run tags immediately
+      // hasnt be called, tags are queued to execute.
       if (this.reRun === true) {
         tag.run();
       } else {
@@ -3422,9 +3421,9 @@ q.html.fileLoader.tidyUrl = function (path) {
 
 q.html.GlobalEval = {};
 
-//TODO: write unit test for this.
+// TODO: write unit test for this.
 
-//Adapted from http://weblogs.java.net/blog/driscoll/archive/2009/09/08/eval-javascript-global-context
+// Adapted from http://weblogs.java.net/blog/driscoll/archive/2009/09/08/eval-javascript-global-context
 q.html.GlobalEval.globalEval = function (src) {
   if (window.execScript) {
     window.execScript(src === "" ? " " : src);
@@ -3441,7 +3440,7 @@ q.html.GlobalEval.globalEval = function (src) {
 
 /*global escape, unescape*/
 
-//this is quite redundant package, simpler method can be used
+// this is quite redundant package, simpler method can be used
 
 q.html.HtmlInjector = {};
 
@@ -3449,12 +3448,12 @@ q.html.HtmlInjector.inject = function (el, injectStart, str, cb, parentNode) {
   var i, ii, d, scriptsRaw, scripts, script, contents;
   if (str.toLowerCase().indexOf("<script") >= 0) {
     d = document.createElement("div");
-    //In IE, if you don't put a char here and the only thing the HTML contains
-    //is a script element, the inner html doesn't get set.
+    // In IE, if you don't put a char here and the only thing the HTML contains
+    // is a script element, the inner html doesn't get set.
     d.innerHTML = "a" + str;
     scriptsRaw = d.getElementsByTagName("script");
-    //Make copy of the raw array that is given by the browser, as the
-    //raw array changes as the dom changes.
+    // Make copy of the raw array that is given by the browser, as the
+    // raw array changes as the dom changes.
     scripts = [];
     for (i = 0, ii = scriptsRaw.length; i < ii; i += 1) {
       scripts.push(scriptsRaw[i]);
@@ -3471,18 +3470,18 @@ q.html.HtmlInjector.inject = function (el, injectStart, str, cb, parentNode) {
         s.script = script.innerHTML;
       }
       contents.push(s);
-      //Note: this line changes the length of scriptsRaw.
+      // Note: this line changes the length of scriptsRaw.
       script.parentNode.removeChild(script);
     }
     if (d.innerHTML) {
-      //Remove first character in the html, put in above
+      // Remove first character in the html, put in above
       if (d.innerHTML.length > 0) {
         d.innerHTML = d.innerHTML.substring(1);
       }
     }
     q.html.HtmlInjector.doInject(el, injectStart, d);
     q.html.HtmlInjector.loadScripts(contents, 0, cb, el);
-    //use document fragments if adding to multiple elements!
+    // use document fragments if adding to multiple elements!
   } else {
     d = document.createElement("div");
     d.innerHTML = str;
@@ -3707,7 +3706,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     }
   };
 
-  //this object is used to store native document.write functions
+  // this object is used to store native document.write functions
   var redirectedDocWriteMethods = null;
 
   function saveDocWriteMethods() {
@@ -3808,9 +3807,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
   var accessorBasePath = TagsUtils.prototype.PACKAGE_NAME + 
           ".TagsUtils._writeScriptURL_callbacks";
   
-  //declare it in global namespace:
+  // declare it in global namespace:
   var accesorBase = {};
-  //make sure its not overriding in case of multiple containers
+  // make sure its not overriding in case of multiple containers
   qubit.Define.namespace(accessorBasePath, accesorBase, GLOBAL, true);
   
   var wsCounter = 0;
@@ -3858,11 +3857,11 @@ q.html.HtmlInjector.getAttributes = function (node) {
             "' type='text/javascript' " +
             " src='" + url + "'>" +
             // @TODO consider adding async option here
-            //(doies it  really make sense?)
+            // (doies it  really make sense?)
       "</" + scr + "ipt>";
     
     if (redirectedDocWriteMethods) {
-      //js is single threaded
+      // js is single threaded
       unlockDocWriteMethods();
       document.write(value);
       saveDocWriteMethods();
@@ -3904,7 +3903,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
                                     session,
                                     tag,
                                     runLastSessionFilterIfPresent) {
-    //tag.log.FINEST("Sorting filters...");/*L*/
+    // tag.log.FINEST("Sorting filters...");/*L*/
     // @todo maybe this should be done buch earlier
     filters = filters.sort(function (a, b) {
       try {
@@ -3925,12 +3924,12 @@ q.html.HtmlInjector.getAttributes = function (node) {
       }
     });
 
-    var decision = PASS; //by default PASS
+    var decision = PASS; // by default PASS
     if (!filters || (filters.length === 0)) {
       return decision;
     }
 
-    //loop and execute - MATCH
+    // loop and execute - MATCH
     var lastReadyToProcessFilter = null;
     var disabledFiltersPresent = false;
     var sessionFiltersPresent = false;
@@ -3975,35 +3974,35 @@ q.html.HtmlInjector.getAttributes = function (node) {
     if (lastReadyToProcessFilter === null) {
       onlyAwaitingOrDisabledFiltersPresent = true;
       if (!disabledFiltersPresent) {
-        //all filters failed
+        // all filters failed
         decision = FAIL;
       } else {
-        //none passed but one of filters was disabled
+        // none passed but one of filters was disabled
         decision = PASS;
       }
     } else {
-      //some filters matched, review state of final matched filter
+      // some filters matched, review state of final matched filter
       if (lastReadyToProcessFilter.config.include) {
-        //last response was to INCLUDE this tag
+        // last response was to INCLUDE this tag
         decision = response;
       } else {
-        //last response was to EXCLUDE this tag
+        // last response was to EXCLUDE this tag
         decision = (response === PASS) ? FAIL : PASS;
       }
     }
 
-    //if all passed, 
-    //after standard checks, check if any filter called to wait
-    //because of onlyAwaitingOrDisabledFiltersPresent, it excludeds session
-    //filters cases too: "sessionFiltersPresent"
+    // if all passed, 
+    // after standard checks, check if any filter called to wait
+    // because of onlyAwaitingOrDisabledFiltersPresent, it excludeds session
+    // filters cases too: "sessionFiltersPresent"
     if (waitingResponse > 0 && 
-            //told to wait and no failures detected
+            // told to wait and no failures detected
             (decision === PASS || onlyAwaitingOrDisabledFiltersPresent)) {
-      //tag is told to wait
+      // tag is told to wait
       decision = waitingResponse;
     }
 
-    //no waiting or PASS but with session somwhere in order?
+    // no waiting or PASS but with session somwhere in order?
     if (decision === SESSION ||
             ((decision === PASS) && sessionFiltersPresent)) {
       if (!lastSessionFilter.config.include) {
@@ -4016,7 +4015,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
         if (runLastSessionFilterIfPresent) {
           for (var c = 0; c < sessionFiltersToRun.length; c++) {
             try {
-              //it will run tag immediatelly or queue for execution for starter
+              // it will run tag immediatelly or queue for execution for starter
               sessionFiltersToRun[c].runTag(tag);
             } catch (ex) {
               sessionFiltersToRun[c].log/*L*/
@@ -4140,11 +4139,11 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @param config {Object} config object used to build instance
    */
   function BaseVariable(config) {
-    //defaults
+    // defaults
     this.config = {};
     this.handlers = [];
     /*log*/
-    //Add for all detailed logger and collector
+    // Add for all detailed logger and collector
     this.log = new qubit.opentag.Log("", function () {
       return this.CLASS_NAME + "[" + this.uniqueId + "]";
     }.bind(this), "collectLogs");
@@ -4203,7 +4202,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
       for (var i = 0; i < BaseVariable.pageVariables.length; i++) {
         var regVar = BaseVariable.pageVariables[i];
         if (variable === regVar) {
-          return regVar;//exit
+          return regVar;// exit
         }
       }
       BaseVariable.pageVariables.push(variable);
@@ -4643,7 +4642,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     if ((this.getValue() instanceof Array)) {
       exp = true;
     }
-    //UV case! this is a hack abit - copied logic from origins
+    // UV case! this is a hack abit - copied logic from origins
     return Expression.SUPER.prototype
        .replaceToken.call(this, token, string, altValue, exp);
   };
@@ -4819,7 +4818,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
   var Cookie = qubit.opentag.pagevariable.Cookie;
   var URLQuery = qubit.opentag.pagevariable.URLQuery;
 
-  //var log = new qubit.opentag.Log("TagHelper -> ");
+  // var log = new qubit.opentag.Log("TagHelper -> ");
 
   /**
    * @class qubit.opentag.TagHelper
@@ -5017,10 +5016,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   TagHelper.validateAndGetVariableForParameter = function (param) {
     if (param.hasOwnProperty("variable") && param.variable) {// @todo review
-      //validate it:
+      // validate it:
       param.variable = TagHelper.initPageVariable(param.variable);
-      //DISABLING UV SHORT DEFINITIONS PROCESSING
-//    } else if (param.uv) {//empty strings are also excluded
+      // DISABLING UV SHORT DEFINITIONS PROCESSING
+//    } else if (param.uv) {// empty strings are also excluded
 //      param.variable = new UniversalVariable({
 //        name: param.uv,
 //        value: param.uv
@@ -5285,8 +5284,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
           // this image will be inserted after scripts are fetched
         });
         
-        //this script will be executed after script links will be loaded and
-        //the html will be injected
+        // this script will be executed after script links will be loaded and
+        // the html will be injected
         loader.script = function () {
           alert("Hello World!");
         };
@@ -5315,7 +5314,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     this.urlsLoaded = 0;
     this.urlsFailed = 0;
     
-    //consider moving all direct events here
+    // consider moving all direct events here
     this.events = new qubit.Events({});
     
     this._depLoadedHandler = function () {
@@ -5838,7 +5837,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
           function () {
     this.awaitingDependencies = -new Date().valueOf();
     
-    //make sure its loaded before execution
+    // make sure its loaded before execution
     this.load();
     
     if (this._ignoreDeps) {
@@ -5856,7 +5855,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   GenericLoader.prototype._attachDepsEventsToContinue = function () {
     this.log.FINE("Attaching success events to dependencies...");/*L*/
-    //important lock and state indicator!
+    // important lock and state indicator!
     this.awaitingDependencies = new Date().valueOf();
     
     var deps = this.dependencies;
@@ -5924,7 +5923,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
       return;
     }
     if (this.loadedDependencies) {
-      //dependencies ready
+      // dependencies ready
       this.execute();      
     } else if (this.loadingDependenciesFailed) {
       this.log.INFO("script execution failed before running: " +/*L*/
@@ -5973,7 +5972,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     }
 
     if (this.scriptExecuted) {
-      return; //execution can be called only if script execution state is unset
+      return; // execution can be called only if script execution state is unset
     }
 
     var finished = true;
@@ -5988,7 +5987,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
         try {
           cancel = this.before();
         } catch (ex) {
-          //decision changed: failured before callback must stop execution.
+          // decision changed: failured before callback must stop execution.
           this.log.ERROR("`before` thrown an exception");/*L*/
           this.log.ERROR(ex, true);/*L*/
           this._onError(ex);
@@ -6006,24 +6005,24 @@ q.html.HtmlInjector.getAttributes = function (node) {
     }
     
     if (this.scriptExecuted) {
-      return; //execution could be called already! by last url sync load!
+      return; // execution could be called already! by last url sync load!
     }
     
-    if (this.unexpectedFail) {//wait for deps
-      finished = true; //override, done, error
+    if (this.unexpectedFail) {// wait for deps
+      finished = true; // override, done, error
     }
     
     if (!finished) {
       this._setTimeout(this._triggerExecution.bind(this), 30);
     } else {
       this._flushDocWrites();
-      //now check if failures occured
+      // now check if failures occured
       if (this.scriptLoadingFailed ||
           this.injectHTMLFailed ||
           this.unexpectedFail) {
         this._markFailure();
       } else {
-        //no failures, run!
+        // no failures, run!
         this.log.FINE("Executing...");/*L*/
         this.scriptExecuted = new Date().valueOf();
         this.addState("EXECUTED");
@@ -6043,7 +6042,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
           this.executedWithErrors = new Date().valueOf();
         }
         if (!this.executedWithErrors) {
-          //this event will cause other awaiting dependencies to run
+          // this event will cause other awaiting dependencies to run
           if (successful) {
             this.events.call("success");
           }
@@ -6051,8 +6050,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
       }
       this._flushDocWrites();
       this._markFinished();
-      this.log.INFO("* stopped [" +/*L*/
-              ((this.scriptExecuted > 0) ? "executed" : "not executed") +/*L*/
+      this.log.INFO("* stopped [" + /*L*/
+              ((this.scriptExecuted > 0) ? "executed" : "not executed") + /*L*/
               "] *");/*L*/
     }
   };
@@ -6071,7 +6070,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
   GenericLoader.prototype._markFinished = function () {
     this.runIsFinished = new Date().valueOf();
     this.isRunning = false;
-    //unlock possibly locked doc write
+    // unlock possibly locked doc write
     if (GenericLoader.LOCK_DOC_WRITE === this) {
       this._flushDocWrites();
       TagsUtils.unlockDocumentWrites();
@@ -6107,17 +6106,17 @@ q.html.HtmlInjector.getAttributes = function (node) {
   GenericLoader.prototype.shouldWaitForDocWriteProtection = function () {
 //    if (GenericLoader.LOCK_DOC_WRITE !== this && 
 //        GenericLoader.LOCK_DOC_WRITE) {
-//      //this condition holds tag to wait at any other tag using doc write
-//      //currently TagsUtils.writeScriptURL checks if redirects of doc write
-//      //are set and will unlock it for current execution of tags that can use 
-//      //doc write and dont need to wait.
-//      //KEEP this block for debugging reasons.
+//      // this condition holds tag to wait at any other tag using doc write
+//      // currently TagsUtils.writeScriptURL checks if redirects of doc write
+//      // are set and will unlock it for current execution of tags that can use 
+//      // doc write and dont need to wait.
+//      // KEEP this block for debugging reasons.
 //      return true;
 //    }
     if (this.willSecureDocumentWrite()) {
-      //we can use more generic check
+      // we can use more generic check
       if (!GenericLoader.LOCK_DOC_WRITE) {
-        //obtain lock, so no other tag can proceed
+        // obtain lock, so no other tag can proceed
         GenericLoader.LOCK_DOC_WRITE = this;
         this._secureWriteAndCollectForExecution();
       } else if (GenericLoader.LOCK_DOC_WRITE !== this) {
@@ -6126,7 +6125,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
           this.log.WARN("Tag will wait till document.write be available.");/*L*/
           this.log.FINE(GenericLoader.LOCK_DOC_WRITE, true);/*L*/
         }
-        //only case: LOCK_DOC_WRITE lock obtained not by myself - wait then
+        // only case: LOCK_DOC_WRITE lock obtained not by myself - wait then
         return true;
       }
     }
@@ -6154,32 +6153,32 @@ q.html.HtmlInjector.getAttributes = function (node) {
       this._handleCancel();
       return true;
     }
-    //if dependencies are okay, execute entire execution logic:
+    // if dependencies are okay, execute entire execution logic:
     // 1) load URLs
     // 2) after 1) inject HTML (can have some async stuff)
     // 3) 1& -> 2 finished : execute main script
     
     if (!this._loadExecutionURLsAndHTMLInformed) {
-      //show this message once
+      // show this message once
       this._loadExecutionURLsAndHTMLInformed = true;
       this.log.INFO("tag is loaded, trying execution...");/*L*/
     }
 
-    //check if url/urls are specified, delay if any
+    // check if url/urls are specified, delay if any
     this._triggerURLsLoading(callback);
-    ///this._flushDocWrites();
+    /// this._flushDocWrites();
     
-    //check if 1) is finished.
+    // check if 1) is finished.
     if (!this.loadURLsNotFinished) {
       this._flushDocWrites();
-      //once URL(s) are loaded/finished, try html injection
-      //check if html injection is done, and start it if not started
+      // once URL(s) are loaded/finished, try html injection
+      // check if html injection is done, and start it if not started
       this._triggerHTMLInjection();
       this._flushDocWrites();
-      //if URL is finished, and after that HTML injection is done...
+      // if URL is finished, and after that HTML injection is done...
       if (!this.injectHTMLNotFinished) {
         this._flushDocWrites();
-        //check if 1) & 2) is finished.
+        // check if 1) & 2) is finished.
         this.log.INFO("url and html awaiting has ended...");/*L*/
         if (!this._docWriteNotFlushed) {
           if (this._docWriteFlushed) {
@@ -6284,7 +6283,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   GenericLoader.prototype.addState = function (stateName) {
     if (this.STATE.hasOwnProperty(stateName)) {
-      //this.log.FINEST("Updating state.");/*L*/
+      // this.log.FINEST("Updating state.");/*L*/
       this.state = (this.state | this.STATE[stateName]);
       try {
         this.onStateChange(stateName);
@@ -6377,10 +6376,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
      */
     this.waitForDependenciesFinished = new Date().valueOf();
     
-    //normally body injection location is one of dependencies, by adding 
-    //condition here, full body load need and interactiveBodyLoadNeed is taken
-    //out of timeout procedure. If removed here, locatrions will be still 
-    //checked to exist but timeout will apply.
+    // normally body injection location is one of dependencies, by adding 
+    // condition here, full body load need and interactiveBodyLoadNeed is taken
+    // out of timeout procedure. If removed here, locatrions will be still 
+    // checked to exist but timeout will apply.
     var fullBodyNeededAndUnLoaded = this._fullBodyNeededAndUnLoaded();
     var interactiveBodyNeededButNotReady = this._bodyNeededButNotAvailable();
     
@@ -6388,25 +6387,26 @@ q.html.HtmlInjector.getAttributes = function (node) {
       this.waitForDependenciesFinished = false;
     } else {
       if (!this.timeoutCountdownStart) {
-        //start count down here.
+        // start count down here.
         this.timeoutCountdownStart = new Date().valueOf();
       }
-      //check deps and proceed
+      // check deps and proceed
       if (this.allDependenciesLoaded()) {
         this._markLoadedSuccesfuly();
       } else {
         if (this._loadingOutOfTimeFrames()) {
           this.loadingTimedOut = new Date().valueOf();
-          if (this.allDependenciesLoaded(true)) {//give last chance for defaults
+          if (this.allDependenciesLoaded(true)) {
+            // give last chance for defaults
             this._markLoadedSuccesfuly();
           } else {
             this.log.WARN("timed out while loading dependencies.");/*L*/
             this.addState("TIMED_OUT");
-            this.loadingDependenciesFailed = new Date().valueOf();
+            this._markLoadingDependenciesFailed();
             this._triggerOnLoadTimeout();
           }
         } else {
-          //wait for dependencies, no matter what.
+          // wait for dependencies, no matter what.
           // @TODO let it be done by a nicer tool... single timeout processor
           this.waitForDependenciesFinished = false;
         }
@@ -6415,7 +6415,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     
     if (!this.waitForDependenciesFinished) {
       this._setTimeout(_waitForDependencies.bind(this), 65);
-      /*log*/ //make some nice counter logs count down...
+      /*log*/ // make some nice counter logs count down...
       var diff = (new Date().valueOf() - this.loadStarted);
       var freq = 3000;
       var curr = diff / this.getTimeout();
@@ -6438,6 +6438,15 @@ q.html.HtmlInjector.getAttributes = function (node) {
       this.addState("LOADED_DEPENDENCIES");
     }
   }
+  
+  /**
+   * @protected
+   * Failed dependencies loading marker. Strictly protected.
+   */
+  GenericLoader.prototype._markLoadingDependenciesFailed = function () {
+    this.addState("FAILED_TO_LOAD_DEPENDENCIES");
+    this.loadingDependenciesFailed = new Date().valueOf();
+  };
   
   /**
    * Checker indicating if all dependencies are satisfied.
@@ -6512,8 +6521,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @returns {Boolean} 
    */
   GenericLoader.prototype.docWriteAsksToWaitForBody = function () {
-    //tag must wait for location if asynchronous, or instructed to protect
-    //writes
+    // tag must wait for location if asynchronous, or instructed to protect
+    // writes
     return !!(this.delayDocWrite && this.config.usesDocumentWrite);
   };
   
@@ -6527,8 +6536,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
     if (this._dontWaitForInjections()) {
       return false;
     }
-    //if it is body, tag needs to wait for body
-    //once needed check if loaded.
+    // if it is body, tag needs to wait for body
+    // once needed check if loaded.
     return this._isBodyLocationNeeded() && !TagsUtils.bodyAvailable();
   };
   
@@ -6538,7 +6547,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @returns {Boolean}
    */
   GenericLoader.prototype._isBodyLocationNeeded = function () {
-    //synchronous load is excluded from awaiting for body
+    // synchronous load is excluded from awaiting for body
     if (!this.isLoadingAsynchronously()) {
       return false;
     }
@@ -6612,7 +6621,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     if (this._fullBodyNeededAndUnLoaded()) {
       return false;
     }
-    //async check happens after the full body load needed as takes over it.
+    // async check happens after the full body load needed as takes over it.
     if (!this.isLoadingAsynchronously()) {
       return true;
     }
@@ -6809,7 +6818,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
       }
     }
 
-    //by default dependencies (other tags) are not loaded automatically
+    // by default dependencies (other tags) are not loaded automatically
     this.addState("LOADING_DEPENDENCIES");
     this.log.INFO("Load started.");/*L*/
     
@@ -7043,7 +7052,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     // only CHROME has synchronous onload callbvacks, but chrome is not the only
     // browser.
     if (this._wasTimed) {
-      //if timer was triggered, script is no longer synchronously loading!
+      // if timer was triggered, script is no longer synchronously loading!
       return true;
     }
     return !!(this.config.async || this.forceAsynchronous);
@@ -7063,7 +7072,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @param {Function} callback
    */
   GenericLoader.prototype.injectHTML = function (callback) {
-     //on sync - try to dpc.write
+    // on sync - try to dpc.write
     var tryWriteIfNoLocation = !this.docWriteAsksToWaitForBody();
     // tryWriteIfNoLocation set to true will cause immediate document.write
     // call if location was not found!
@@ -7417,12 +7426,33 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   BaseTag.prototype.FILTER_WAIT_TIMEOUT = -1;
   
+  BaseTag.prototype._isVariable = function (variable) {
+    return variable !== null && variable !== undefined;
+  };
+  
   BaseTag.prototype.run = function () {
     if (this.destroyed) {
       throw "Tag is destroyed.";
     }
     
     this.resolveAllDynamicData();
+    
+    var params = this.parameters;
+    
+    // validate parameters 
+    if (params) {
+      for (var i = 0; i < params.length; i++) {
+        var variable = this.getVariableForParameter(params[i]);
+        if (!this._isVariable(variable)) {
+          this.log.ERROR("Parameter is missing variable!"); /*L*/
+          this.log.ERROR(params[i]); /*L*/
+          this._markLoadingDependenciesFailed();
+          this._markFinished();
+          return;
+        }
+      }
+    }
+    
     if (this.config.runner) {
       var ret = false;
       try {
@@ -7542,7 +7572,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
       this.filtersRunTriggered = new Date().valueOf();
     }
     
-    //it is a number of BaseFilter.state type or time when to stop checking
+    // it is a number of BaseFilter.state type or time when to stop checking
     if (state === BaseFilter.state.SESSION) {
       this.addState("AWAITING_CALLBACK");
       this.log.FINE("tag is in session and will be manually triggered " + /*L*/
@@ -7565,8 +7595,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
       var tout = this.config.filterTimeout;
       if (tout < 0 || 
               ((new Date().valueOf() - this.filtersRunTriggered) > tout)) {
-        //try again in [state] ms in future
-        //if state is lesser than 0 its passing call and the end.
+        // try again in [state] ms in future
+        // if state is lesser than 0 its passing call and the end.
         if (!this._awaitingForFilterInformed) {
           this.log.INFO("filters found indicating for tag to wait " +/*L*/
                   "for applicable conditions - waiting...");/*L*/
@@ -8013,8 +8043,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   BaseTag.prototype.replaceTokensWithValues = function (string) {
     if (!string || string.indexOf("${") === -1) {
-      //serious performance improvements.
-      //regex are heavy
+      // serious performance improvements.
+      // regex are heavy
       return string;
     }
     var params = this.parameters;
@@ -8066,8 +8096,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
           function (tokenName, variable) {
     var param = this.getParameterByTokenName(tokenName);
     if (param !== null) {
-      //it will be automatically converted by TagHelper to 
-      //the instance on first access.
+      // it will be automatically converted by TagHelper to 
+      // the instance on first access.
       param.variable = {
         value: variable
       };
@@ -8102,7 +8132,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
           this.log.ERROR("Variable defaults string is invalid: " + /*L*/
                   param.defaultValue);/*L*/
           return undefined;
-          //throw ex;
+          // throw ex;
         }
       }
     }
@@ -8193,7 +8223,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
         }
 
         if (typeof (filter) === "function") {
-          var FilterClass = filter;//linter
+          var FilterClass = filter;// linter
           filter = new FilterClass();
         }
         
@@ -8435,15 +8465,15 @@ q.html.HtmlInjector.getAttributes = function (node) {
     if (params) {
       for (var i = 0; i < params.length; i++) {
         var v = this.getVariableForParameter(params[i]);
-        if (v !== null) {
+        if (this._isVariable(v)) {
           Utils.addToArrayIfNotExist(vars, v);
         }
       }
     }
-    //add named variables and do not duplicate
+    // add named variables and do not duplicate
     if (this.namedVariables) {
       for (var key in this.namedVariables) {
-        //getSetVariable validates each time variable
+        // getSetVariable validates each time variable
         Utils.addToArrayIfNotExist(vars, _getSetNamedVariable(this, key));
       }
     }
@@ -8739,6 +8769,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * `this.attachVariablesChangedListeners()`.
    */
   BaseTag.prototype._markFinished = function () {
+    this.log.FINE("Marked finished."); /*L*/
     BaseTag.SUPER.prototype._markFinished.call(this);
     this.attachVariablesChangedListeners();
   };
@@ -9027,7 +9058,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
       excludes.push(qubit.opentag.CustomTag);
       excludes.push(qubit.opentag.LibraryTag);
     } catch (ex) {
-      //not a package dependency
+      // not a package dependency
       log.FINEST("Warning:Missing known libraries: CustomTag, LibraryTag");/*L*/
     }
     
@@ -9067,7 +9098,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
       excludes.push(qubit.opentag.CustomTag);
       excludes.push(qubit.opentag.LibraryTag);
     } catch (ex) {
-      //not a package dependency
+      // not a package dependency
       log.FINEST("Warning:Missing known libraries: CustomTag, LibraryTag");/*L*/
     }
     ret = Tags.findAllInstances(pckg, BaseTag, excludes, maxDeep);
@@ -9115,9 +9146,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
           log.FINE("found [" + trackPath + "]:" + /*L*/
                   (obj.config ? obj.config.name : propName));/*L*/
           Utils.addToArrayIfNotExist(instances, obj);
-          return true;//dont search in instances objects
+          return true;// dont search in instances objects
         }
-        return false;//get deeper
+        return false;// get deeper
       }.bind(this);
       
       Utils.traverse(pckg, fun, cfg);
@@ -9173,7 +9204,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
       excludes.push(qubit.opentag.filter.Filter);
       excludes.push(qubit.opentag.filter.URLFilter);
     } catch (ex) {
-      //not a package dependency
+      // not a package dependency
       log.FINE("Warning: Missing known libraries: CustomTag, LibraryTag");/*L*/
     }
     return Tags.findAllInheriting(pckg, BaseFilter, excludes, maxDeep);
@@ -9333,7 +9364,7 @@ q.html.PostData = function (url, data, type) {
       var loadTime = loadTimes[i].loadTime;
       
       if (loadTime === null || isNaN(loadTime)) {
-        //ignore unset load time entries.
+        // ignore unset load time entries.
         continue;
       }
       
@@ -9356,7 +9387,7 @@ q.html.PostData = function (url, data, type) {
       }
     }
         
-    //sending part
+    // sending part
     if (config.pingServerUrl && pingStrings.length > 0) {
       pingString += encodeURIComponent("{" + pingStrings.join(',') + "}");
       var url = "//" + config.pingServerUrl + "/tag2?" + pingString;
@@ -9470,7 +9501,7 @@ q.html.PostData = function (url, data, type) {
 
 
 q.cookie.SimpleSessionCounter = {};
-//Qubit Session Tracker
+// Qubit Session Tracker
 q.cookie.SimpleSessionCounter._cookieName = "_qst_s";
 q.cookie.SimpleSessionCounter._sessionCookie = "_qsst_s";
 q.cookie.SimpleSessionCounter.update = function (domain) {
@@ -10011,22 +10042,22 @@ var JSON = {};
 }());
 
 
-////Author Peter Fronc
+// Author Peter Fronc
 // UTF supported.
 
 
 (function () {
 
   var defaultAlphabet = [];
-  //"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~_.-*()'!%"
-  //.split("");//[];
+  // "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~_.-*()'!%"
+  // .split("");//[];
 
-  var len = Math.pow(2, 8);//256
+  var len = Math.pow(2, 8);// 256
   for (var c = 0; c < len; c++) {
     defaultAlphabet.push(String.fromCharCode(c));
   }
 
-//dictionary
+// dictionary
   var xdict = {};
   for (var i = 0; i < defaultAlphabet.length; i++) {
     xdict[defaultAlphabet[i]] = i;
@@ -10114,30 +10145,30 @@ var JSON = {};
     var results = [prevChar];
 
     for (var i = 1; i < codes.length; i++) {
-      //recovering encoding, we must get chunk and add dictionary word
+      // recovering encoding, we must get chunk and add dictionary word
       var currentCode = codes[i];
       chunk = getFromDict(currentCode, dict);
 
       if (chunk === null) {
-        //well, check if in recovered dictionary
+        // well, check if in recovered dictionary
         if (locdict.hasOwnProperty(currentCode)) {
           chunk = locdict[currentCode];
         }
         if (chunk === null) {
-          //if not in both, but we know it had to be there, means
-          //was added in "last step" - so it is last word + the character
+          // if not in both, but we know it had to be there, means
+          // was added in "last step" - so it is last word + the character
           //
           chunk = prevChunk + prevChar;
         }
       }
-      //add chunk
+      // add chunk
       results.push(chunk);
 
-      //add dictionary asssigned
-      //previous char now is known, its current chunk first char (previous
-      //chunk when added, added dictionary word, we add it now, step later)
+      // add dictionary asssigned
+      // previous char now is known, its current chunk first char (previous
+      // chunk when added, added dictionary word, we add it now, step later)
       prevChar = chunk.charAt(0);
-      //recreate dict
+      // recreate dict
       locdict[dictSize++] = prevChunk + prevChar;
       prevChunk = chunk;
     }
@@ -10158,7 +10189,7 @@ var JSON = {};
 
 
 (function () {
-  //mex is manual "hex"
+  // mex is manual "hex"
   
   var mex = "abcdefghijklmnopqrstuvwxyz" + "0123456789" + "'%./:<>?[";
   var Umex = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + "*!-+()@{|}" + "\"]^_`~$&#";
@@ -10324,12 +10355,12 @@ var JSON = {};
   var Define = qubit.Define;
   var Cookie = qubit.Cookie;
   
-  //order matters!
-  //make sure that replacement char does not equal to first character of
-  //any coded words!
-  //Escape character used in encoder: *
-  //exclude also: _, N, +, *, T, Q staring from - or number
-  //number dash codes are SPECIAL.
+  // order matters!
+  // make sure that replacement char does not equal to first character of
+  // any coded words!
+  // Escape character used in encoder: *
+  // exclude also: _, N, +, *, T, Q staring from - or number
+  // number dash codes are SPECIAL.
   var definitions = [
     ['","referrer":[{"url":"http://', "1-"],
     ['","referrer":[{"url":"https://', "2-"],
@@ -10461,8 +10492,8 @@ var JSON = {};
       ret = ret.replace(pair[0], pair[1]);
     }
     
-    //a must section, normally first, but ist safer to do it fater dictionary as
-    //can be changed by developer.
+    // a must section, normally first, but ist safer to do it fater dictionary as
+    // can be changed by developer.
     // @TODO move those to the dictionary... 
     ret = ret.replace(/;/g, "*-");
     ret = ret.replace(/&/g, "*.");
@@ -10473,12 +10504,12 @@ var JSON = {};
     ret = ret.replace(/\t/g, "*T");
     ret = ret.replace(/"/g, "*Q");
     
-    //test server with
+    // test server with
     // document.cookie=
     // 'x="abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' + 
     // '*!-#$+()@\'%./:<>?[]^_`{|}~"'
      
-    //start searching for interesting keywords now
+    // start searching for interesting keywords now
     var ddict = dynamicDictionary(ret);
     ddict.concat(ininitalDdict);
     // actually space is fine, just trimming occurs
@@ -10492,7 +10523,7 @@ var JSON = {};
       ret = result[0];
     }
     
-    //utf section
+    // utf section
     if (!limitUTFRange) {
       ret = replaceWithUTFEncoding(ret);
     } else {
@@ -10531,7 +10562,7 @@ var JSON = {};
     string = string.replace(/@/g, "@@");
     var dict = [];
     for (var i = 0, j = 0; i < ddict.length; i++) {
-      //new regex is expensive operation
+      // new regex is expensive operation
       var pattern = ddict[i][0];
       var rx = new RegExp(escapeRegExp(pattern), 'g');
       var out = string.replace(rx, "@" + j + "-");
@@ -10548,7 +10579,7 @@ var JSON = {};
     return string.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
   }
   
-  //"abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ*-+@./_"
+  // "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ*-+@./_"
   var dynamicDictChars = 
     "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+_.";
   var dynamicDictCharsMap = {};
@@ -10582,7 +10613,7 @@ var JSON = {};
       }
     }
     // @todo, make this function more sophisticated, use multiple + one word len
-    //instead of just len
+    // instead of just len
     dict = dict.sort(function (a, b) {
       if (a[0].length === b[0].length) {
         return 0;
@@ -10613,7 +10644,7 @@ var JSON = {};
         ddict = string.substring(1, qMkIdx);
         ddict = ddict.split("*");
         string = string.substring(qMkIdx + 1);
-        //decode only if there was dynamic encoding
+        // decode only if there was dynamic encoding
         string = decodeDynamicDictionary(string, ddict);
       }
     }
@@ -10633,16 +10664,16 @@ var JSON = {};
             utfNum = utfNum + ch;
             collectingNum = true;
           } else if (collectingNum) {
-            //was collecting number  till now
+            // was collecting number  till now
             if (ch === ".") {
-              //utf case
+              // utf case
               ret += String.fromCharCode(+utfNum);
             } else if (ch === "-" &&
                     getDefinitionByChar(utfNum + "-", this._defs)) {
-              //ext dict case
+              // ext dict case
               ret += getDefinitionByChar(utfNum + "-", this._defs);
             } else {
-              //unrecognised, dump as was
+              // unrecognised, dump as was
               ret += "*" + utfNum + ch;
             }
             utfNum = "";
@@ -10666,11 +10697,11 @@ var JSON = {};
           } else if (ch === "Q") {
             ret += "\"";
           } else if (getDefinitionByChar(ch, this._defs) !== null) {
-            //any other chars are in the dictionary
+            // any other chars are in the dictionary
             var def = getDefinitionByChar(ch, this._defs);
             ret += def;
           } else {
-            //unrecognised! dump as was
+            // unrecognised! dump as was
             ret += "*" + ch;
           }
         } else {
@@ -10681,17 +10712,17 @@ var JSON = {};
       }
     }
     if (utfNum) {
-      //last utfNum collection was uncleared! bring it back
+      // last utfNum collection was uncleared! bring it back
       ret += "*" + utfNum;
     }
     if (codeWord) {
-      //flush empty fflash
+      // flush empty fflash
       ret += "*";
     }
     return ret;
   };
   
-  //some cleanups needed.
+  // some cleanups needed.
   function decodeDynamicDictionary(string, ddict) {
     if (!ddict || ddict.length === 0 || !string) {
       return string;
@@ -10716,16 +10747,16 @@ var JSON = {};
           } else {
             if (collectingNum) {
               if (ddict && ch === "-" && ddict[+codeNum]) {
-                //dictionary code case
+                // dictionary code case
                 ret += ddict[+codeNum];
               } else {
-                //unrecognised, dump as is
+                // unrecognised, dump as is
                 ret += "@" + codeNum + ch;
               }
               codeNum = "";
               collectingNum = false;
             } else {
-              //not a code! dump as was
+              // not a code! dump as was
               ret += "@" + ch;
             }
           }
@@ -10737,11 +10768,11 @@ var JSON = {};
       }
     }
     if (codeNum) {
-      //last codeNum collection was uncleared! bring it back
+      // last codeNum collection was uncleared! bring it back
       ret += "@" + codeNum;
     }
     if (codeWord) {
-      //flush empty fflash
+      // flush empty fflash
       ret += "@";
     }
     return ret;
@@ -10759,10 +10790,10 @@ var JSON = {};
   var Cookie = qubit.Cookie;
   var log = new qubit.opentag.Log("CookieCompressor -> ");/*L*/
   
-  //var global = Define.global();
+  // var global = Define.global();
   var binSupported = false;
-  //some servers are very bad. must be manually permitted.
-  //!!global.chrome || (global.mozIndexedDB !== undefined);
+  // some servers are very bad. must be manually permitted.
+  // !!global.chrome || (global.mozIndexedDB !== undefined);
   /**
    * @class qubit.opentag.compression.Cookiecompressor
    * 
@@ -10950,7 +10981,7 @@ var JSON = {};
     var nonCompressedCookie = !!cookie;
     
     if (cookie === null) {
-      //try compressed new cookie in use
+      // try compressed new cookie in use
       cookie = Cookie.get(xCookieName, true);
       cookie = compressor.decompress(cookie);
     }
@@ -10983,9 +11014,9 @@ var JSON = {};
     
     now = new Date().getTime();
     
-    //At this point session.sessionCount is from SimpleSessionCounter
-    //cookie.sc is the last simpleSessionCounter result we have
-    //we do this to see if there is a change in it
+    // At this point session.sessionCount is from SimpleSessionCounter
+    // cookie.sc is the last simpleSessionCounter result we have
+    // we do this to see if there is a change in it
     if (session.sessionCount !== parseInt(cookie.sc, 10)) {
       cookie.sessionStartTime = now;
       cookie.sc = session.sessionCount;
@@ -10997,7 +11028,7 @@ var JSON = {};
       });
       cookie.sessionLandingPage = Utils.getUrl().substring(0, 300);
     } else if (Session.isReferrerDifferent()) {
-      //If the referrer is different, then update it.
+      // If the referrer is different, then update it.
       if (!Session
               .referrerIsSameAsPrevious(cookie.referrer, now, 30 * 60 * 1000)) {
         cookie.referrer.push({
@@ -11010,7 +11041,7 @@ var JSON = {};
         cookie.sessionCount += 1;
       }
     }
-    //Always set the saved session count to be the used sessionCount
+    // Always set the saved session count to be the used sessionCount
     session.sessionCount = cookie.sessionCount;
     session.sessionStartTime = cookie.sessionStartTime;
     session.pageStartTime = now;
@@ -11043,7 +11074,7 @@ var JSON = {};
     session.referrer = cookie.referrer;
     
     if (nonCompressedCookie) {
-      //remove old cookie if exists
+      // remove old cookie if exists
       Cookie.rm(cookieName);
     }
     
@@ -11065,7 +11096,7 @@ var JSON = {};
     };
     
     session.getCookie = function (name, compressed) {
-      var res = Cookie.get(name, true); //get encoded
+      var res = Cookie.get(name, true); // get encoded
       if (res && (compressed || name.indexOf("x_") === 0)) {
         log.FINE("getCookie() : Comressed cookie accessed:\n" +/*L*/
                 name + "=" + res);/*L*/
@@ -11075,7 +11106,7 @@ var JSON = {};
           log.ERROR("Cookie failed to decompress: " + ex);/*L*/
         }
       } else {
-        //apply decoding
+        // apply decoding
         if (res !== null) {
           res = Cookie.decode(res);
         }
@@ -11143,8 +11174,8 @@ var JSON = {};
     var start, end, ref;
     ref = Session.getReferrer();
     start = ref.indexOf("://");
-    //If it can't find a protocol, something weird is going on. 
-    //Return it and track it on the server.
+    // If it can't find a protocol, something weird is going on. 
+    // Return it and track it on the server.
     if (start === -1) {
       return true;
     }
@@ -11310,7 +11341,7 @@ var JSON = {};
     expr = expr.replace(/\s*function\s*\([\w\s,_\d\$]*\)\s*\{/, "");
     expr = expr.substring(0, expr.lastIndexOf("}"));
     
-    //""+_this.val...'
+    // ""+_this.val...'
     expr = expr.replace(
       /(["']\s*\+\s*)\s*_*\w+\s*\.\s*valueForToken\s*\(\s*'([^']*)'\s*\)/g,
       "$1\"${$2}\"");
@@ -11318,7 +11349,7 @@ var JSON = {};
       /\s*_*\w+\s*\.\s*valueForToken\s*\(\s*'([^']*)'\s*\)(\s*\+\s*["'])/g,
       "\"${$1}\"$2");
     
-    //""+_this.val..."
+    // ""+_this.val..."
     expr = expr.replace(
       /(["']\s*\+\s*)\s*_*\w+\s*\.\s*valueForToken\s*\(\s*"([^"]*)"\s*\)/g,
       "$1\"${$2}\"");
@@ -11326,7 +11357,7 @@ var JSON = {};
       /\s*_*\w+\s*\.\s*valueForToken\s*\(\s*"([^"]*)"\s*\)(\s*\+\s*["'])/g,
       "\"${$1}\"$2");
     
-    //_this.val..."'
+    // _this.val..."'
     expr = expr.replace(
       /(\s*)_*\w+\s*\.\s*valueForToken\s*\(\s*'([^']*)'(\s*)\)/g,
       "$1${$2}$3");
@@ -11348,7 +11379,7 @@ var JSON = {};
 //    if (this.getHtml() || this.config.script) {
 //      this.log.FINE("html or config.script is set while using pre." +/*L*/
 //              " Cancelling running pre.");/*L*/
-//      return false;//continue normally
+//      return false;// continue normally
 //    }
     
     this.log.INFO("Running PRE script execution...");/*L*/
@@ -11372,7 +11403,7 @@ var JSON = {};
     } catch (ex) {
       this.log.ERROR(/*L*/
         this.config.name + " exception while running pre: " + ex);/*L*/
-      return true;//cancel running 
+      return true;// cancel running 
     }
     return false;
   };
@@ -11446,7 +11477,7 @@ var JSON = {};
     
     namespace = qubit.Define.vendorsSpaceClasspath(namespace);
     
-    //config must be set in runtime - for each instance
+    // config must be set in runtime - for each instance
     var libraryDefaultConfig = {};
     
     if (libConfig.getDefaultConfig) {
@@ -11455,7 +11486,7 @@ var JSON = {};
     
     var constr = libConfig.CONSTRUCTOR;
     
-    //prepare new config that does not override .config object in Library class
+    // prepare new config that does not override .config object in Library class
     var prototypeTemplate = {};
    
     for (var prop in libConfig) {
@@ -11464,17 +11495,17 @@ var JSON = {};
       }
     }
     
-    //add new constructor
+    // add new constructor
     var constructor = function (cfg) {
-      //update instance properties for new defaults
+      // update instance properties for new defaults
       cfg = cfg || {};
       cfg = Utils.overrideFromLeftToRight(libraryDefaultConfig, cfg);
       
       // --- standard ---
-      //run library standard constructor
+      // run library standard constructor
       var ret = qubit.opentag.LibraryTag.call(this, cfg);
       
-      //any additional constructor? run it.
+      // any additional constructor? run it.
       if (constr) {
         constr.call(this, cfg);
       }
@@ -11488,7 +11519,7 @@ var JSON = {};
       namespace, LibraryTag, prototypeTemplate, GLOBAL, constructor);
     
     var ns = Define.STANDARD_VS_NS + ".";
-    //make sure standard ns is always set
+    // make sure standard ns is always set
     if (namespace.indexOf(ns) !== 0) {//
       Utils.namespace(ns + namespace, ret);
     }
@@ -11762,10 +11793,7 @@ var JSON = {};
     
       this.ping = new qubit.opentag.Ping(this.config);
 
-      var callback = this.sendPings.bind(this);
-      this._pingAsyncCallback = function () {
-        Timed.setTimeout(callback, 5);
-      };
+      this._sendPingsTrigger = this.sendPings.bind(this);
       
       /*~no-send*/
       if (config.init) {
@@ -11777,11 +11805,12 @@ var JSON = {};
       }
       
       var _this = this;
-      
       this._tagLoadedHandler = function (event) {
-        _this.sendPingsNotTooOften();
-        if (event.success) {
-          event.tag.log.INFO("[Other]SENDING LOAD STATS");/*L*/
+        if (_this._containerAlreadySentPings) {
+          _this.sendPingsNotTooOften();
+          if (event.success) {
+            event.tag.log.INFO("[Other]SENDING LOAD STATS");/*L*/
+          }
         }
       };
     }
@@ -12064,16 +12093,16 @@ var JSON = {};
     for (i = 0, ii = scripts.length; i < ii; i += 1) {
       script = scripts[i];
       src = script.getAttribute("src");
-      //removed "opentag", white labelling!!!
+      // removed "opentag", white labelling!!!
       if (!!src && (src.indexOf("" + 
           this.config.clientId + "-" + this.getContainerId() +
           ".js") > 0)) {
         return (script.getAttribute("async") === null && 
-            //handle ie7
+            // handle ie7
             (script.getAttribute("defer") === false ||
-            //handle ie8
+            // handle ie8
             script.getAttribute("defer") === "" ||
-            //handle chrome/firefox
+            // handle chrome/firefox
             script.getAttribute("defer") === null));
       } 
     }
@@ -12177,10 +12206,10 @@ var JSON = {};
       }
     }
     
-    //important to run it after tags scanning for this container.
+    // important to run it after tags scanning for this container.
     this.prepareSessionIfNeeded();
     
-    //lets add priority option for tags
+    // lets add priority option for tags
     // @todo review if ordering does make any sense
     var orderedTags = this.getTagsInOrder();
     
@@ -12188,10 +12217,10 @@ var JSON = {};
       try {
         var tag = orderedTags[z];
         var name = tag.config.name;
-        //ignore tag state or check if clean and unstarted
+        // ignore tag state or check if clean and unstarted
         if (this.includedToRun(tag)) {
-          //if dependencies are defined, and they are in the container, 
-          //try to run them rather now instead of later! (reordering)
+          // if dependencies are defined, and they are in the container, 
+          // try to run them rather now instead of later! (reordering)
           var deps = tag.resolveDependencies();
           if (deps.length > 0) {
             for (var i = 0; i < deps.length; i++) {
@@ -12213,7 +12242,7 @@ var JSON = {};
                 "' to run.\n Error: " + ex);/*L*/
       }
     }
-    //try to send pings sooner than later
+    // try to send pings sooner than later
     Timed.setTimeout(function () {
       this.sendPingsNotTooOften();
     }.bind(this), 1100);
@@ -12272,7 +12301,7 @@ var JSON = {};
         if (this.config.delayDocWrite) {
           tag.delayDocWrite = true;
         }
-        //attach session if necessary
+        // attach session if necessary
         tag.session = tag.session || this.session;//:session
         tag[command]();
       }
@@ -12501,6 +12530,11 @@ var JSON = {};
       l.INFO("********************************************************",
                     0, styling);
       /*~log*/
+     
+      // container adds listener to each tag to refire ping if necessary,
+      // this property will cancell all those trying container to send
+      // pings very early: before container finishes.
+      this._containerAlreadySentPings = new Date().valueOf();
       
       /*no-send*/
       this.sendPingsNotTooOften();
@@ -12574,7 +12608,7 @@ var JSON = {};
    */
   Container.prototype.sendPingsNotTooOften = function () {
     this._sndLck = this._sndLck || {};
-    Timed.runIfNotScheduled(this._pingAsyncCallback, 2000, this._sndLck);
+    Timed.runIfNotScheduled(this._sendPingsTrigger, 2000, this._sndLck);
   };
   
   /**
@@ -12601,7 +12635,7 @@ var JSON = {};
       var loadTimes;
       
       if (results.run) {
-        //send "just run" load times
+        // send "just run" load times
         loadTimes = Tags.getLoadTimes(results.run);
         this.log.INFO("Sending standard load pings");/*L*/
         this.lastPingsSentTime = new Date().valueOf();
@@ -12609,7 +12643,7 @@ var JSON = {};
       }
       
       /*session*/
-      //dedupe part:
+      // dedupe part:
       loadTimes = Tags.getLoadTimes();
       var deduplicatedTagsToBeSent = [];
       for (i = 0; i < loadTimes.length; i++) {
@@ -12632,7 +12666,7 @@ var JSON = {};
           otherTagsToBeSent.push(loadTimes[i]);
         }
         
-        //in case tags are fired and method used separately
+        // in case tags are fired and method used separately
         if (otherTagsToBeSent.length > 0) {
           this.ping.send(this, otherTagsToBeSent);
         }
@@ -12646,7 +12680,7 @@ var JSON = {};
           awaitingTagsToBeSent.push(loadTimes[i]);
         }
         
-        //in case tags are fired and method used separately
+        // in case tags are fired and method used separately
         if (awaitingTagsToBeSent.length > 0) {
           this.ping.send(this, awaitingTagsToBeSent);
         }
@@ -12702,7 +12736,7 @@ var JSON = {};
           filterReady = filterReady || {};
           attachRenamedIfExist(filterReady, tag, name);
         } else if (tag.config.needsConsent) {
-          //consent needing unloaded
+          // consent needing unloaded
           consent = consent || {};
           attachRenamedIfExist(consent, tag, name);
         } else {
@@ -12745,8 +12779,8 @@ var JSON = {};
       if (this.tags.hasOwnProperty(prop)) {
         var tag = this.tags[prop];
         if (tag instanceof qubit.opentag.BaseTag) {
-          //tag.filtersState() < 0 === filters are passed
-          //tag.locked is not locked
+          // tag.filtersState() < 0 === filters are passed
+          // tag.locked is not locked
           // === 0 FAILED
           // > 0 filter is awaiting
           var state = tag.filtersState();
@@ -12780,7 +12814,7 @@ var JSON = {};
       if (this.tags.hasOwnProperty(prop)) {
         var tVars = this.tags[prop].getPageVariables();
         for (var i = 0; i < tVars.length; i++) {
-          //for each parameter, get variable instance if not added already
+          // for each parameter, get variable instance if not added already
           Utils.addToArrayIfNotExist(vars, tVars[i]);
         }
       }
@@ -13100,9 +13134,9 @@ var JSON = {};
     var i = 0;
     for (i = 0; i < uv.events.length; i += 1) {
       if (!uv.events[i].has_fired) {
-        //Event hasn't fired, re-insert it now that push is redefined.
+        // Event hasn't fired, re-insert it now that push is redefined.
         UVListener.unfired_events.push(uv.events.splice(i, 1)[0]);
-        i -= 1; //The remaining events have shifted backward.
+        i -= 1; // The remaining events have shifted backward.
       }
     }
   };
@@ -13308,7 +13342,7 @@ var JSON = {};
 
     if (!selfDebug && debugRequested) {
       if (!qubit.DEBUG_MODE) {
-        //clear existing tagsdk! And only for Log attaching purpose!
+        // clear existing tagsdk! And only for Log attaching purpose!
         GLOBAL.TAGSDK_NS_OVERRIDE = true;
       } else {
         GLOBAL.TAGSDK_NS_OVERRIDE = false;
@@ -13323,16 +13357,16 @@ var JSON = {};
     try {
       q.html.UVListener.init(); /*UVListener*/
     } catch (uvInitFalure) {
-      //ignore the failure
+      // ignore the failure
     }
 
-    //triggers entire load
+    // triggers entire load
     Main.runAllContainers(needDebugModeButNotInDebug);
 
     /*debug*/
     if (!needDebugModeButNotInDebug) {
       if (selfDebug && debugToolRequested && !GLOBAL.TAGSDK_DEBUG_TOOL_LOADED) {
-        //load tool
+        // load tool
         var debugTool = document.createElement("script");
         debugTool.src = 
           "https://s3-eu-west-1.amazonaws.com/" +
@@ -13400,7 +13434,7 @@ var JSON = {};
               log.INFO("Running container " + container.CLASSPATH);/*L*/
               container.run();
             } else {
-              (function () {//new scope
+              (function () {// new scope
                 var runner = qubit.opentag.RUN_STOPPED_EXECUTON;
                 qubit.opentag.RUN_STOPPED_EXECUTON = function () {
                   try {
@@ -13417,7 +13451,7 @@ var JSON = {};
         }
       }
     } catch (ex) {
-      //silent & reports
+      // silent & reports
     }
   };
 
@@ -13897,10 +13931,8 @@ qubit.Define.namespace("qubit.qprotocol.PubSub", PubSub);
     if (eventName) {
       var idx = value.indexOf(DELIMITER);
       if (idx !== -1) {
-        if (idx > 0) {
-          eventName = value.substring(0, idx);
-          opath = value.substring(idx + 1);
-        }
+        eventName = value.substring(0, idx);
+        opath = value.substring(idx + 1);
       }
     }
 
