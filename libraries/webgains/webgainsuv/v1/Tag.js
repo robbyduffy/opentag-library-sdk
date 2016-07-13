@@ -65,8 +65,7 @@ qubit.opentag.LibraryTag.define("webgains.webgainsuv.v1.Tag", {
         wgOrderRef  = (tx.order_id) ? tx.order_id : "",
         wgItemList  = [],
         wgTotal     = (tx.total) ? tx.total : 0,
-        wgEventId   = (tx.event_id) ? tx.event_id : "",
-        wgLineItems = ;
+        wgEventId   = (tx.event_id) ? tx.event_id : "";
 
 	var itemList = [];
 
