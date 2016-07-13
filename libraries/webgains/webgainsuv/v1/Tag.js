@@ -45,6 +45,9 @@ qubit.opentag.LibraryTag.define("webgains.webgainsuv.v1.Tag", {
 				uv: 'universal_variable.user.user_id',
 				defaultValue: ''
 			}
+			],
+			categories:[
+				"Affiliate Networks"
 			]
 			/*~config*/
 		};
