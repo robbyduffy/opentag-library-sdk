@@ -17,33 +17,7 @@ qubit.opentag.LibraryTag.define("webgains.webgainsuv.v1.Tag", {
 			{
 				name: "Program ID",
 				description: "unique identifier for merchant (e.g. 1234) [COMPULSORY]",
-				token: "program_id",
-				uv: ""
-			},{
-				name: "Version",
-				token: "version_id",
-				defaultValue: '1.2'
-			},{
-				name: "Page Type",
-				description: "",
-				token: "page_type",
-				uv: "universal_variable.page.type",
-				defaultValue: 'Confirmation'
-			},{
-				name: 'User language',
-				description: "",
-				token: "user_language",
-				uv: "universal_variable.user.language",
-				defaultValue: "en-gb"
-			},{
-				name: 'Transaction',
-				token: 'tx',
-				uv: "universal_variable.transaction"
-			},{
-				name: "Customer ID",
-				token: "customer_id",
-				uv: 'universal_variable.user.user_id',
-				defaultValue: ''
+				token: "program_id"
 			}
 			]
 			/*~config*/
@@ -51,50 +25,49 @@ qubit.opentag.LibraryTag.define("webgains.webgainsuv.v1.Tag", {
 	},
 	script: function() {
 	/*script*/
-	var tx 			= this.valueForToken('tx'), 
-		wgProgramId = this.valueForToken('program_id'),
-        wgVersion   = this.valueForToken('version_id'),
-        wgType      = this.valueForToken('page_type'),
-        wgChecksum  = (tx.checksum) ? tx.checksum : "",
-        wgComment   = (tx.comment) ? tx.comment : "",
+	var wgProgramId = this.valueFromToken('program_id'),
+        wgVersion   = (universal_variable.version) ? universal_variable.transaction.version : "1.2",
+        wgType      = (universal_variable.page.type) ? universal_variable.page.type : "Confirmation",
+        wgChecksum  = (universal_variable.transaction.checksum) ? universal_variable.transaction.checksum : "",
+        wgComment   = (universal_variable.transaction.comment) ? universal_variable.transaction.comment : "",
         wgProtocol  = (location.protocol.toLowerCase() == "https:") ? "https" : "http",
-        wgLang      = this.valueForToken('user_language'),
-        wgCurrency  = (tx.currency) ? tx.currency : "GBP",
-        wgCustId    = this.valueForToken('customer_id'),
-        wgVoucher   = (tx && tx.vouchers && tx.vouchers[0]) ? tx.vouchers[0] : "",
-        wgOrderRef  = (tx.order_id) ? tx.order_id : "",
+        wgLang      = (universal_variable.user && universal_variable.user.language) ? universal_variable.user.language : "en-gb",
+        wgCurrency  = (universal_variable.transaction.currency) ? universal_variable.transaction.currency : "GBP",
+        wgCustId    = (universal_variable.user && universal_variable.user.user_id) ? universal_variable.user.user_id : "",
+        wgVoucher   = (universal_variable.transaction && universal_variable.transaction.vouchers && universal_variable.transaction.vouchers[0]) ? universal_variable.transaction.vouchers[0] : "",
+        wgOrderRef  = (universal_variable.transaction.order_id) ? universal_variable.transaction.order_id : "",
         wgItemList  = [],
-        wgTotal     = (tx.total) ? tx.total : 0,
-        wgEventId   = (tx.event_id) ? tx.event_id : "";
+        wgTotal     = (universal_variable.transaction.total) ? universal_variable.transaction.total : 0,
+        wgEventId   = (universal_variable.transaction.event_id) ? universal_variable.transaction.event_id : "";
 
 	var itemList = [];
 
-    for (i = 0; i < tx.line_items.length; i++) {
+    for (i = 0; i < universal_variable.transaction.line_items.length; i++) {
         var itemInfo = [],
-            itemPrice = ( (tx.line_items[i].subtotal / tx.line_items[i].quantity));
+            itemPrice = ( (universal_variable.transaction.line_items[i].subtotal / universal_variable.transaction.line_items[i].quantity));
 
         //Add the event id for existing / new user
-        wgEventItemId = (tx.line_items[i].product.event_id) ? tx.line_items[i].product.event_id : wgEventId;
+        wgEventItemId = (universal_variable.transaction.line_items[i].product.event_id) ? universal_variable.transaction.line_items[i].product.event_id : wgEventId;
         itemInfo.push(wgEventItemId);
 
         //Add the item's price.
         itemInfo.push( parseFloat(itemPrice) );
 
         //Add the item's name.
-        itemInfo.push(tx.line_items[i].product.name);
+        itemInfo.push(universal_variable.transaction.line_items[i].product.name);
 
         //Add the item's ID.
-        itemInfo.push(tx.line_items[i].product.id);
+        itemInfo.push(universal_variable.transaction.line_items[i].product.id);
 
         //Add the transaction's voucher code for items if provided
-        wgItemVoucher = (tx.line_items[i].product.voucher) ? tx.line_items[i].product.voucher : "";
+        wgItemVoucher = (universal_variable.transaction.line_items[i].product.voucher) ? universal_variable.transaction.line_items[i].product.voucher : "";
         itemInfo.push("" + escape(wgItemVoucher));
 
         //Create the string, with fields separated by "::"
         var itemString = itemInfo.join("::");
 
         //Add the string, one time for each individual item purchased.
-        for (j = 0; j < tx.line_items[i].quantity; j++) {
+        for (j = 0; j < universal_variable.transaction.line_items[i].quantity; j++) {
             wgItemList.push(itemString);
             // wgTotal = wgTotal + parseFloat(itemPrice);
         }
