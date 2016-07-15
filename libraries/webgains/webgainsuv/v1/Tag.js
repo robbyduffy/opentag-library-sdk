@@ -28,8 +28,8 @@ qubit.opentag.LibraryTag.define("webgains.webgainsuv.v1.Tag", {
 	},
 	script: function() {
 	/*script*/
-	var wgProgramId = this.valueFromToken('program_id'),
-        wgVersion   = (universal_variable.version) ? universal_variable.transaction.version : "1.2",
+	var wgProgramId = this.valueForToken('program_id'),
+        wgVersion   = (universal_variable.version) ? universal_variable.version : "1.2",
         wgType      = (universal_variable.page.type) ? universal_variable.page.type : "Confirmation",
         wgChecksum  = (universal_variable.transaction.checksum) ? universal_variable.transaction.checksum : "",
         wgComment   = (universal_variable.transaction.comment) ? universal_variable.transaction.comment : "",
