@@ -7,7 +7,7 @@ qubit.opentag.LibraryTag.define("veinteractive.confirmationpixel.v1.Tag", {
 		name: "Confirmation Pixel",
 		async: true,
 		description: "Tag to be added only to the confirmation page",
-		html: "<img src=\"${id}\" width=\"1\" height=\"1\"/>",
+		html: "<img src=\"${ID}\" width=\"1\" height=\"1\"/>",
 		locationDetail: "",
 		isPrivate: false,
 		url: "",
@@ -16,7 +16,7 @@ qubit.opentag.LibraryTag.define("veinteractive.confirmationpixel.v1.Tag", {
 		parameters: [{
 			name: "VE Interactive Pixel",
 			description: "The ID for the tag in this format XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX with dashes included",
-			token: "id",
+			token: "ID",
 			uv: ""
 		}],
 		categories:[
