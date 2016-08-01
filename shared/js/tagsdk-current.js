@@ -5289,6 +5289,12 @@ q.html.HtmlInjector.getAttributes = function (node) {
     this.urlsLoaded = 0;
     this.urlsFailed = 0;
     
+    /**
+     * It tells how many times loader was run.
+     * This property is reset with `reset()` function.
+     */
+    this.runCounter = 0;
+    
     // consider moving all direct events here
     this.events = new qubit.Events({});
     
@@ -5300,6 +5306,12 @@ q.html.HtmlInjector.getAttributes = function (node) {
       }
     }.bind(this);
     
+    /**
+     * If property is set and is a number, running limit will be applied.
+     * Tag will be cancelled if run n-th times more as 
+     * `runningLimit` or more.
+     * @cfg {Number} [runningLimit=undefined]
+     */
     this.config = {
       /**
        * Name of the tag. Note that Tag's name must be unique in container.
@@ -5760,11 +5772,6 @@ q.html.HtmlInjector.getAttributes = function (node) {
   GenericLoader.CANCEL_ALL = false;
   
   /**
-   * It tells how many times loader was run.
-   * This property is not reset with `reset()` function.
-   */
-  GenericLoader.prototype.runCounter = 0;
-  /**
    * Running process trigger. Tags can often contain resources that have
    * to be fetched and this function initialises such processes where it is 
    * necessary. This function can be called only once, after that, each call
@@ -5774,6 +5781,13 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @returns {Boolean} false if tag is currently loading, true otherwise.
    */
   GenericLoader.prototype.run = function () {
+    if (!isNaN(this.config.runningLimit)) {
+      if (this.config.runningLimit <= this.runCounter) {
+        this.log.FINE("running has been stopped as limit is reached.");/*L*/
+        return;
+      }
+    }
+    
     if (this.cancelled || GenericLoader.CANCEL_ALL) {
       this._handleCancel();
       return false;
@@ -6640,7 +6654,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
   /**
    * Dependencies p[arser. It accepts an array of dependencies.
    * Dependency can be refeered by classpath string or direct reference.
-   * @param {type} array Array of tag references or
+   * @param {Array} array Array of tag references or
+   * @param {String} ns namespace classpath
    * @returns {Array} dependencies array, instances of loaders this loader
    *                  is dependant on. The array can be used to add more
    *                  dependencies.
@@ -7119,6 +7134,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   function BaseTag(config) {
     
+    /**
+     * If property is set and is a number, re-running limit will be applied.
+     * @cfg {Number} [reRunLimit=undefined]
+     */
     var defaults = {
      /**
       * How much filter should be timed out. By default - never if
@@ -7267,6 +7286,8 @@ q.html.HtmlInjector.getAttributes = function (node) {
      * @property {Boolean}
      */
     this.pingSent = false;
+    
+    this.reRunCounter = 0;
     
     if (config) {
       this.addState("INITIAL");
@@ -8242,6 +8263,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     this._runOnceIfFiltersPassTriggered = u;
     this.filtersRunTriggered = u;
     this._runner = u;
+    this.reRunCounter = 0;
     
     this.detachVariablesChangedListeners();
   };
@@ -8703,7 +8725,16 @@ q.html.HtmlInjector.getAttributes = function (node) {
     this.events.call("variableChanged", ref);
     
     if (!this.isRunning && this.config.reRunOnVariableChange) {
+      if (!isNaN(this.config.reRunLimit)) {
+        if (this.config.reRunLimit <= this.reRunCounter) {
+          return;
+        }
+      }
+      
+      var counterVal = this.reRunCounter + 1;
       this.reset();
+      // reset() resets counter too, not for this case:
+      this.reRunCounter = counterVal;
       this.resetFilters();
       this.runIfFiltersPass();
     }
@@ -13747,7 +13778,7 @@ var PubSub = {
   subscribe: function (eventName, callback) {
     if (inititatedSuccessfully) {
       var uv = getUV();
-      uv.on.call(uv, eventName, callback);
+      uv.on(eventName, callback);
     } else {
       unqueuedEvents.push({on: [eventName, callback]});
     }
@@ -13769,7 +13800,7 @@ var PubSub = {
   publish: function (eventName, event) {
     if (inititatedSuccessfully) {
       var uv = getUV();
-      uv.emit.call(uv, eventName, event);
+      uv.emit(eventName, event);
     } else {
       unqueuedEvents.push({emit: [eventName, event]});
     }
