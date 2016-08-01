@@ -5784,7 +5784,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
     if (!isNaN(this.config.runningLimit)) {
       if (this.config.runningLimit <= this.runCounter) {
         this.log.FINE("running has been stopped as limit is reached.");/*L*/
-        return;
+        return false;
       }
     }
     
@@ -8717,7 +8717,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @param {Object} variable the variable instance
    */
   BaseTag.prototype._handleVariableChange = function (ref) {
-    /*~log*/
+    /*log*/
     this.log.FINEST("Variable " + ref.variable.CLASSPATH + " changed from : " +
             ref.oldValue + "to:" +  ref.newValue);
     /*~log*/
@@ -8741,24 +8741,38 @@ q.html.HtmlInjector.getAttributes = function (node) {
   };
   
   /**
-   * Function will iterate over all variables and attach this tag handler to
-   * their onchange events.
+   * Function will iterate over all variables and attach this tag's 
+   * default page variables changed events handler (`handleVariableChange`) .
+   * 
+   * This function will add event and turn on events engine for variables if 
+   * necessary - `reRunOnVariableChange' or `observeVariables` must be set to
+   * true in config.
+   * 
+   * Use force parameter to overide and attach events. 
+   * Note that `reRunOnVariableChange` is still required for tag to re-run, 
+   * if it is not set to true - only custom variables handlers 
+   * will be triggered.
+   * 
+   * @param {Boolean} force use to force events handling.
    */
-  BaseTag.prototype.attachVariablesChangedListeners = function () {
+  BaseTag.prototype.attachVariablesChangedListeners = function (force) {
     var variables = this.getPageVariables();
     
-    var startObserving = 
-      this.config.reRunOnVariableChange || this.config.observeVariables;
+    var startObserving = !!(this.config.reRunOnVariableChange || 
+      this.config.observeVariables || force);
     
-    for (var i = 0; i < variables.length; i++) {
-      var variable = variables[i];
-      variable.onValueChanged(this.handleVariableChange, startObserving);
+    if (startObserving) {
+      for (var i = 0; i < variables.length; i++) {
+        var variable = variables[i];
+        variable.onValueChanged(this.handleVariableChange, startObserving);
+      }
     }
   };
 
   /**
    * Function will iterate over all variables and detach this tag handler to
    * their onchange events.
+   * Note that `reset()` will call this function.
    */
   BaseTag.prototype.detachVariablesChangedListeners = function () {
     var variables = this.getPageVariables();
