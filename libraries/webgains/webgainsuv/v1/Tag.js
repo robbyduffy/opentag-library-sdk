@@ -38,7 +38,8 @@ qubit.opentag.LibraryTag.define("webgains.webgainsuv.v1.Tag", {
         wgOrderRef  = (universal_variable.transaction.order_id) ? universal_variable.transaction.order_id : "",
         wgItemList  = [],
         wgTotal     = (universal_variable.transaction.total) ? universal_variable.transaction.total : 0,
-        wgEventId   = (universal_variable.transaction.event_id) ? universal_variable.transaction.event_id : "";
+        wgEventId   = (universal_variable.transaction.event_id) ? universal_variable.transaction.event_id : "",
+        wgScriptSrc;
 
 	var itemList = [];
 
@@ -75,22 +76,27 @@ qubit.opentag.LibraryTag.define("webgains.webgainsuv.v1.Tag", {
 
     wgItemList = wgItemList.join("|");
 
-		window.wgUri = "//track.webgains.com/transaction.html?wgrs=1&wgver=" + wgVersion + "&wgprotocol=";
-	    wgUri += wgProtocol + "&wgsubdomain=track";
-	    wgUri += "&wglang=" + wgLang;
-	    wgUri += "&wgprogramid=" + wgProgramId + "&wgeventid=" + wgEventId;
-	    wgUri += "&wgvalue=" + wgTotal + "&wgchecksum=" + wgChecksum;
-	    wgUri += "&wgorderreference=" + wgOrderRef;
-	    wgUri += "&wgcomment=" + escape(wgComment);
-	    wgUri += "&wglocation=" + escape(document.referrer);
-	    wgUri += "&wgitems=" + escape(wgItemList);
-	    wgUri += "&wgcustomerid=" + escape("" + wgCustId);
-	    wgUri += "&wgvouchercode=" + escape("" + wgVoucher);
-	    wgUri += "&wgCurrency=" + escape("" + wgCurrency);
+	wgScriptSrc = "//track.webgains.com/transaction.html?wgsubdomain=track&wgver=" + wgVersion;
+    wgScriptSrc += "&wgprotocol=" + wgProtocol;
+    wgScriptSrc += "&wglang=" + wgLang;
+    wgScriptSrc += "&wgprogramid=" + wgProgramId + "&wgeventid=" + wgEventId;
+    wgScriptSrc += "&wgvalue=" + wgTotal + "&wgchecksum=" + wgChecksum;
+    wgScriptSrc += "&wgorderreference=" + wgOrderRef;
+    wgScriptSrc += "&wgcomment=" + escape(wgComment);
+    wgScriptSrc += "&wglocation=" + escape(document.referrer);
+    wgScriptSrc += "&wgitems=" + escape(wgItemList);
+    wgScriptSrc += "&wgcustomerid=" + escape("" + wgCustId);
+    wgScriptSrc += "&wgvouchercode=" + escape("" + wgVoucher);
+    wgScriptSrc += "&wgCurrency=" + escape("" + wgCurrency);
 
-		// Load the image pixel
-		var img = new Image();
-		img.src = wgUri;
+	// Load the script
+	(function(d, t) {
+	    var g = d.createElement(t),
+	        s = d.getElementsByTagName(t)[0];
+	    g.src = wgScriptSrc;
+	    s.parentNode.insertBefore(g, s);
+	}(document, 'script'));
+
 	/*~script*/
 	},
 	pre: function() {
