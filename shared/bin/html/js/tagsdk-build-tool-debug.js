@@ -88,7 +88,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.1.0";
+var qversion = "3.1.0-r1";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -99,7 +99,9 @@ if (qubit.VERSION && qubit.VERSION !== qversion) {
 qubit.VERSION = qversion;
 
 try {
-  module.exports = PKG_ROOT;
+  if (typeof module === 'object') {
+    module.exports = PKG_ROOT;
+  }
 } catch (e) {}
 
 // shortcuts
