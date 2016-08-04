@@ -8197,10 +8197,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
   };
   
   /**
-   * 
-   * @param {type} filters
-   * @param {type} ns
-   * @returns {undefined}
+   * Function used to add filters to tag.
+   * @param {Array} filters array of classpaths/references
+   * @param {String} ns namespace to use (optional)
    */
   BaseTag.prototype.addFiltersList = function (filters, ns) {
     var unresolved = [];
@@ -8581,6 +8580,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
     return variable;
   }
   
+  /**
+   * Returns unique ID that is associated with this tag.
+   * @returns {String} unique Id.
+   */
   BaseTag.prototype.getId = function () {
     return this._getUniqueId();
   };
@@ -8601,6 +8604,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
   var disableCookiePrefix = "qubit.tag.disableRunning_";
   var cookieRunAll = "qubit.tag.forceAllToRun";
   
+  /**
+   * @returns {Boolean} if there is cookie set to ignore `disabled`
+   * flag on tag.
+   */
   BaseTag.prototype.cookieSaysToRunEvenIfDisabled = function () {
     var id = this._getUniqueId();
     var ret = !!Cookie.get(cookieRunAll);
@@ -8630,7 +8637,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
   };
   
   /**
-   * 
+   * Function will set cookie so this tag will be disabled and will not run.
    */
   BaseTag.prototype.setCookieToDisable = function () {
     var id = this._getUniqueId();
@@ -8638,7 +8645,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
   };
   
   /**
-   * 
+   * Function removes cookie set to disable this tag (if any).
    */
   BaseTag.prototype.rmCookieToDisable = function () {
     var id = this._getUniqueId();
@@ -8646,7 +8653,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
   };
   
   /**
-   * 
+   * Function tells if tag is disabled by tag cookie.
    * @returns {Boolean} if disabled by cookie
    */
   BaseTag.prototype.disabledByCookie = function () {
@@ -8672,7 +8679,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
   };
   
   /**
-   * 
+   * Function will remove all cookies that may block all tags from running.
    */
   BaseTag.rmAllDisablingCookies = function () {
     Utils.rmCookiesMatching(disableCookiePrefix);
@@ -8696,6 +8703,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * This function start observation process automatically.
    * 
    * @param {Function} callback firing when variable value changes
+   * @event onVariableChanged
    */
   BaseTag.prototype.onVariableChanged = function (callback) {
     this.attachVariablesChangedListeners();
@@ -8713,16 +8721,16 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * 
    * This handler will also call `this.onVariableChanged(oldValue, variable);`
    * 
-   * @param {Object} ref event containig "newValue", "oldValue" and "variable"
-   * @param {Object} variable the variable instance
+   * @param {Object} event event containig "newValue", "oldValue" and 
+   * "variable"
    */
-  BaseTag.prototype._handleVariableChange = function (ref) {
+  BaseTag.prototype._handleVariableChange = function (event) {
     /*log*/
-    this.log.FINEST("Variable " + ref.variable.CLASSPATH + " changed from : " +
-            ref.oldValue + "to:" +  ref.newValue);
+    this.log.FINEST("Variable " + event.variable.CLASSPATH + 
+            " changed from : " + event.oldValue + "to:" +  event.newValue);
     /*~log*/
     
-    this.events.call("variableChanged", ref);
+    this.events.call("variableChanged", event);
     
     if (!this.isRunning && this.config.reRunOnVariableChange) {
       if (!isNaN(this.config.reRunLimit)) {
@@ -13521,9 +13529,18 @@ var JSON = {};
 /**
  * Export the api to window.uv unless required as a commonjs module.
  */
-if (typeof module === 'object' && module.exports) {
-  module.exports = createUv
-} else if (window) {
+var modulePresent = false;
+
+try {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = createUv
+    modulePresent = true
+  }
+} catch (ex) {
+  // workaround: just catch in case browser complains for unset module prop.
+}
+
+if (!modulePresent && window) {
   window.uv = createUv()
 }
 
