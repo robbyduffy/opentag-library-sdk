@@ -4473,7 +4473,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   BaseVariable.CHECK_POLL_RATE = 333;
   
-  function checkIfChangedAndContinue(parameters) {
+  function checkIfChangedAndContinue() {
     if (observingStopped) {
       return false;
     }
@@ -4500,8 +4500,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   BaseVariable.prototype.startObservingForChanges = function () {
     this.addToObservedVariables(); // make sure this variable is observed
-    observingStopped = false;
-    checkIfChangedAndContinue();
+    if (observingStopped) {
+      observingStopped = false;
+      checkIfChangedAndContinue();
+    }
   };
   
   /**
