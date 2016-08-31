@@ -88,7 +88,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.1.0-r1";
+var qversion = "3.1.0-r2";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -1699,8 +1699,55 @@ var UNDEF;
    * 
    * #Logging class
    * 
-   * ALWAYS USE LOGGER IN A SEPARATE LINES. Lines containing logger 
-   * may be deleted by compression process.
+   * Logger class with ability of grouping messages at many levels, there is six
+   * possible logging levels:
+   * 
+   * Log.LEVEL_FINEST
+   * Log.LEVEL_FINE
+   * Log.LEVEL_INFO
+   * Log.LEVEL_WARN
+   * Log.LEVEL_ERROR
+   * Log.LEVEL_NONE
+   * 
+   * The list above is ordered from highest level to lowest - the highest 
+   * level is LEVEL_FINEST and lowest is LEVEL_NONE 
+   * (lowest level is equal to 0 and causes no logs being shown).
+   * 
+   * By default TagSDK sets loggin level to LEVEL_FINE while in debug mode,
+   * if TagSDK is not in debug mode - level is set to lowest value.
+   * 
+   * To adjust system logging output choose from Log.LEVEL_* properties.
+   * 
+   * Example:
+    
+         qubit.opentag.Log.setLevel(qubit.opentag.Log.LEVEL_FINEST);
+
+   * will enable all logs to 
+   * be at output.
+   
+         qubit.opentag.Log.setLevel(qubit.opentag.Log.LEVEL_NONE);
+  
+   * will disable any logs.
+   * 
+   * All log levels:
+    
+        Log.LEVEL_FINEST = 4;
+        Log.LEVEL_FINE = 3;
+        Log.LEVEL_INFO = 2;
+        Log.LEVEL_WARN = 1;
+        Log.LEVEL_ERROR = 0;
+        Log.LEVEL_NONE = -1;
+    
+    
+   * 
+   * It is recommended to use logger in single lines as lines containing logger 
+   * may be deleted by compression process in some cases.
+   * 
+   * Note that setting level does not change logs collection level, if logs are 
+   * not collected at certain level they will not be logged. to set collection 
+   * and logging at same level use `Log.setCollectAndLevel(level)` function.
+   * 
+   * Default logs collection level is set to LEVEL_FINE.
    * 
    * @param prefix {String} typical prefix to be used for each logger instance
    * @param clazz {Object} class object or function returning special
@@ -1795,6 +1842,10 @@ var UNDEF;
   
   var COLLECT = true;
   
+  /**
+   * Function is called by default on each framework load to check if loggin 
+   * level is set in cookie.
+   */
   Log.setLevelFromCookie = function () {
     var cookieLevel = qubit.Cookie.get("qubit.opentag.Log.LEVEL");
   
@@ -1838,32 +1889,18 @@ var UNDEF;
   };
   
   /**
+   * Global logger level setter.
+   * @param {Number} level one of qubit.opentag.Log.LEVEL_* properties
+   */
+  Log.setCollectAndLevel = function (level) {
+    Log.setLevel(level);
+    Log.setCollectLevel(level);
+  };
+  
+  /**
    * 
    * `Log.getLevel()` getter/setter is used to controll globally current and 
    * default logging levels.
-   * Choose from Log.LEVEL_* properties to adjust system logging output.
-   * 
-   * Example:
-    
-         qubit.opentag.Log.setLevel(qubit.opentag.Log.LEVEL_FINEST);
-
-   *  will enable all logs to 
-   * be at output.
-   
-         qubit.opentag.Log.setLevel(qubit.opentag.Log.LEVEL_NONE);
-  
-   * will disable any logs.
-   * 
-   * All log levels:
-    
-        Log.LEVEL_FINEST = 4;
-        Log.LEVEL_FINE = 3;
-        Log.LEVEL_INFO = 2;
-        Log.LEVEL_WARN = 1;
-        Log.LEVEL_ERROR = 0;
-        Log.LEVEL_NONE = -1;
-    
-    
    * @returns {Number} current level, one of qubit.opentag.Log.LEVEL_* 
    *   properties
    */
@@ -1905,6 +1942,8 @@ var UNDEF;
   Log.logsCollection = collection;
   
   /**
+   * @static
+   * 
    * Function will cause re-printing all of the logs that were collected.
    * Collection mechanism has it's own LEVEL configuration same
    * as plain logging in console.
@@ -3354,11 +3393,7 @@ q.html.fileLoader.tidyUrl = function (path) {
     } else {
       // if the starter was executed, run tags immediately
       // hasnt be called, tags are queued to execute.
-      if (this.reRun === true) {
-        tag.run();
-      } else {
-        tag.runOnce();
-      }
+      this._triggerTag(tag);
     }
   };
   
@@ -3369,11 +3404,15 @@ q.html.fileLoader.tidyUrl = function (path) {
   Filter.prototype._processQueuedTagsToRun = function () {
     for (var i = 0; i < this.tagsToRun.length; i++) {
       var tag = this.tagsToRun[i];
-      if (this.reRun === true) {
-        tag.run();
-      } else {
-        tag.runOnce();
-      }
+      this._triggerTag(tag);
+    }
+  };
+  
+  Filter.prototype._triggerTag = function (tag) {
+    if (this.reRun === true) {
+      tag.run();
+    } else {
+      tag.runOnce();
     }
   };
   
@@ -8733,7 +8772,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    * @event onVariableChanged
    */
   BaseTag.prototype.onVariableChanged = function (callback) {
-    this.attachVariablesChangedListeners();
+    this.attachVariablesChangedListeners(true);
     this.events.on("variableChanged", callback);
   };
   
