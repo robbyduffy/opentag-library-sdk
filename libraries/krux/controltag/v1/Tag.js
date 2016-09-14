@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("krux.controltag.v1.Tag", {
 	getDefaultConfig: function () {

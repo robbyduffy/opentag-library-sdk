@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 qubit.opentag.Utils.namespace('insparq.sharingwidgetbuttons.v1.local');
 insparq.sharingwidgetbuttons.v1.local.Config = {
   "parameters": [

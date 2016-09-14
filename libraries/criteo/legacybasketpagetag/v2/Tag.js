@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("criteo.legacybasketpagetag.v2.Tag", {
 	getDefaultConfig: function () {

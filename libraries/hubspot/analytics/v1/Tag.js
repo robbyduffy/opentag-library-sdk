@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("hubspot.analytics.v1.Tag", {
 	getDefaultConfig: function () {

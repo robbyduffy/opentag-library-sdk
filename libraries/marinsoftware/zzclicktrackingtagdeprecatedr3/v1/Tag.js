@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"marinsoftware.zzclicktrackingtagdeprecatedr3.v1.Tag", {

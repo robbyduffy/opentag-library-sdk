@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("olapic.widgetinstance.v1.Tag", {
   getDefaultConfig: function () {

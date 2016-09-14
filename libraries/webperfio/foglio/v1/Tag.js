@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("webperfio.foglio.v1.Tag", {
 	getDefaultConfig: function () {

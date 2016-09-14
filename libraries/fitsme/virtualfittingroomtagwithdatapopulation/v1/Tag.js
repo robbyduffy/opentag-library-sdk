@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"fitsme.virtualfittingroomtagwithdatapopulation.v1.Tag", {

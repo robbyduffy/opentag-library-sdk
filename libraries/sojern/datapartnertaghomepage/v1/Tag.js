@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("sojern.datapartnertaghomepage.v1.Tag", {
 	getDefaultConfig: function () {

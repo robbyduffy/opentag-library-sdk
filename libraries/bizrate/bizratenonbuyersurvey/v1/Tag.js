@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("bizrate.bizratenonbuyersurvey.v1.Tag", {
 	getDefaultConfig: function () {

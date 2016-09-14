@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("kenshoo.orderpixel.v1.Tag", {
 	getDefaultConfig: function () {

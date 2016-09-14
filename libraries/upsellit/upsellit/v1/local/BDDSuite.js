@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:include tagsdk-current.js
+//:import CurrentSDK
 //:include upsellit/upsellit/v1/Tag.js
 
 /*

@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"zanox.zanoxconfirmationpagedeprecatedr1.v1.Tag", {

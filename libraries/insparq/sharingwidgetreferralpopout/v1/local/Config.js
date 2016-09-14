@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 qubit.opentag.Utils.namespace('insparq.sharingwidgetreferralpopout.v1.local');
 insparq.sharingwidgetreferralpopout.v1.local.Config = {
   "parameters": [

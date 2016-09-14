@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("responsetap.responsetapclicktocall.v1.Tag", {
 	getDefaultConfig: function () {

@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("qubit.uvlistproductlistingpage.v1.Tag", {
 	getDefaultConfig: function () {

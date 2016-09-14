@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("struq.homepagetagv19us.v1.Tag", {
 	getDefaultConfig: function () {

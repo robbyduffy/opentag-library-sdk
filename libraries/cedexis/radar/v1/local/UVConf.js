@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:include tagsdk-current.js
+//:import CurrentSDK
 
 /*
  * Universal Variable Template

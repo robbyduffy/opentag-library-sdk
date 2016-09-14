@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("jquery.asynchronous.v1.Tag", {
 	getDefaultConfig: function () {

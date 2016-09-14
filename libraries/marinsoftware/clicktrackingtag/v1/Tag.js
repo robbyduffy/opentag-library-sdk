@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("marinsoftware.clicktrackingtag.v1.Tag", {
 	getDefaultConfig: function () {

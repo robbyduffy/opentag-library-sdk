@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("tenderapp.tenderapp.v1.Tag", {
 	getDefaultConfig: function () {

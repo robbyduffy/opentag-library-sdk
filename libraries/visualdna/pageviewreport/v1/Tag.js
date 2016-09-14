@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("visualdna.pageviewreport.v1.Tag", {
 	getDefaultConfig: function () {

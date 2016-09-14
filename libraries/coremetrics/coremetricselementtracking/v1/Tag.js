@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("coremetrics.coremetricselementtracking.v1.Tag", {
 	getDefaultConfig: function () {

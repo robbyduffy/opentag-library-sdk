@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"channeladvisor.channeladvisorconfirmationpage.v1.Tag", {

@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"lengow.conversiontrackingpaymentmethodpage.v1.Tag", {

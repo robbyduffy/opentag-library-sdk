@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 qubit.opentag.Utils.namespace('olapic.carouselwidget.v1.local');
 olapic.carouselwidget.v1.local.Config = {
   "parameters": [

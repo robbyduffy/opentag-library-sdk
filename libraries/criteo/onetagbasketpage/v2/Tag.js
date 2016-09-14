@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("criteo.onetagbasketpage.v2.Tag", {
 	getDefaultConfig: function () {

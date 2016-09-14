@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("ownedit.confirmationpagetag.v1.Tag", {
 	getDefaultConfig: function () {

@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"facebook.facebookconversiontrackingdeprecated.v1.Tag", {

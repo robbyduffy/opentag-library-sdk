@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 //:include infectious/impressiondeskpixelwithoutparameters/v1/Tag.js
 
 /*

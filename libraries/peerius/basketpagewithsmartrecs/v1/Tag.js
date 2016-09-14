@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("peerius.basketpagewithsmartrecs.v1.Tag", {
 	getDefaultConfig: function () {

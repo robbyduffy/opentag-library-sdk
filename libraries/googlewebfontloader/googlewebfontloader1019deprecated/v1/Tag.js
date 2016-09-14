@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"googlewebfontloader.googlewebfontloader1019deprecated.v1.Tag", {

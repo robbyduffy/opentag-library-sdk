@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"flixmedia.checkoutstartpagewithextraeanparameter.v1.Tag", {

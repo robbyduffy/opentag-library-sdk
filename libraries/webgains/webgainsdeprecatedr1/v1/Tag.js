@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("webgains.webgainsdeprecatedr1.v1.Tag", {
 	getDefaultConfig: function () {

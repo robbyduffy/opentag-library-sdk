@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"bazaarvoice.socialmeasurementconversionbeaconrequiredfieldsonly.v1.Tag", {

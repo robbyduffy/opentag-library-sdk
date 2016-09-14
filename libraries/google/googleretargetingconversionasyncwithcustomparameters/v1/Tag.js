@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"google.googleretargetingconversionasyncwithcustomparameters.v1.Tag", {

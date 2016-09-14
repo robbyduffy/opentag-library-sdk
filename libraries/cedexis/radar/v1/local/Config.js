@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:include tagsdk-current.js
+//:import CurrentSDK
 qubit.opentag.Utils.namespace('cedexis.radar.v1.local');
 cedexis.radar.v1.local.Config = {
   "parameters": [

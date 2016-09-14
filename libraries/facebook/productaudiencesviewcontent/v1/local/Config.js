@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 qubit.opentag.Utils.namespace('facebook.productaudiencesviewcontent.v1.local');
 facebook.productaudiencesviewcontent.v1.local.Config = {
   "parameters": [

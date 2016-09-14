@@ -1,4 +1,4 @@
-//:include tagsdk-current.js
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("uplift.platform.v1.Tag", {
 	getDefaultConfig: function () {

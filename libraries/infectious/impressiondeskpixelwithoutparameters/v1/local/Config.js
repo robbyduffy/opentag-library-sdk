@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 qubit.opentag.Utils.namespace('infectious.impressiondeskpixelwithoutparameters.v1.local');
 infectious.impressiondeskpixelwithoutparameters.v1.local.Config = {
   "parameters": [

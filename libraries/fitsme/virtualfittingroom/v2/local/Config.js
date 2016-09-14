@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 qubit.opentag.Utils.namespace('fitsme.virtualfittingroom.v2.local');
 fitsme.virtualfittingroom.v2.local.Config = {
   "parameters": [

@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"chango.deprecatedoptimizationpixelv2generic.v1.Tag", {

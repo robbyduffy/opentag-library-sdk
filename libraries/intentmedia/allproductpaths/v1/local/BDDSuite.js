@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 //:include intentmedia/allproductpaths/v1/Tag.js
 
 /*

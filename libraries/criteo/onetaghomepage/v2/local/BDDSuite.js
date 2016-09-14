@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 //:include criteo/onetaghomepage/v2/Tag.js
 
 /*

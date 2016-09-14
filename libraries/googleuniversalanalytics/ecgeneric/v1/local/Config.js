@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 qubit.opentag.Utils.namespace('googleuniversalanalytics.ecgeneric.v1.local');
 googleuniversalanalytics.ecgeneric.v1.local.Config = {
   "parameters": [

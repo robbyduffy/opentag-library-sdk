@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("googleuniversalanalytics.ectransaction.v1.Tag", {
   getDefaultConfig: function () {

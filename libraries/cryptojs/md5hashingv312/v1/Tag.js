@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("cryptojs.md5hashingv312.v1.Tag", {
 	getDefaultConfig: function () {

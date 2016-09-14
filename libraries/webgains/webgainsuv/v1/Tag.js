@@ -1,4 +1,4 @@
-//:include tagsdk-current.js
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("webgains.webgainsuv.v1.Tag", {
 	getDefaultConfig: function () {

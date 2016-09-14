@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define(
 	"radiumone.radiumoneconfirmationpagesdeprecated.v1.Tag", {

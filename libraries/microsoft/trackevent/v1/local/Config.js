@@ -1,5 +1,5 @@
 /**ignore at merge**/
-//:import sdk.releases.Current
+//:import CurrentSDK
 qubit.opentag.Utils.namespace('microsoft.trackevent.v1.local');
 microsoft.trackevent.v1.local.Config = {
   "parameters": [

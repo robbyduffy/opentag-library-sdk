@@ -1,4 +1,4 @@
-//:import sdk.releases.Current
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("galleria.galleria123.v1.Tag", {
 	getDefaultConfig: function () {
