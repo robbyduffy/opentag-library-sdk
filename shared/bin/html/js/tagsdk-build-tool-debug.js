@@ -4473,7 +4473,7 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   BaseVariable.CHECK_POLL_RATE = 333;
   
-  function checkIfChangedAndContinue(parameters) {
+  function checkIfChangedAndContinue() {
     if (observingStopped) {
       return false;
     }
@@ -4500,8 +4500,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
    */
   BaseVariable.prototype.startObservingForChanges = function () {
     this.addToObservedVariables(); // make sure this variable is observed
-    observingStopped = false;
-    checkIfChangedAndContinue();
+    if (observingStopped) {
+      observingStopped = false;
+      checkIfChangedAndContinue();
+    }
   };
   
   /**
@@ -15145,7 +15147,7 @@ function saveConfig(refNode) {
   var newPackageName = (tagRef.PACKAGE_NAME) + ".local";
   var mkpackage = "qubit.opentag.Utils.namespace('" + newPackageName + "');\n";
   var cfgData = encodeURIComponent(
-					"//:inc" + "lude tagsdk-current.js\n" + mkpackage + newPackageName +
+					"//:impo" + "rt CurrentSDK\n" + mkpackage + newPackageName +
           ".Config = " + serial + ";");
 	
   var data = "classPath=libraries." +
@@ -16850,7 +16852,7 @@ var log = new Log("Main");
 				scriptsPassed = [];
 				for (var i = 0; i < srcs.length; i++) {
 					if (srcs[i] &&
-							srcs[i].indexOf("shared/js/tagsdk-current.js") == -1) {
+							srcs[i].indexOf("CurrentSDK") == -1) {
 						scriptsPassed.push(srcs[i]);
 					}
 				}
