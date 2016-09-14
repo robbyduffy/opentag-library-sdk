@@ -1,4 +1,4 @@
-//:include tagsdk-current.js
+//:import CurrentSDK
 
 qubit.opentag.LibraryTag.define("PACKAGE_NAME.Tag", {
 	getDefaultConfig: function () {
