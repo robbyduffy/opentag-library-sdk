@@ -50,7 +50,8 @@ var PKG_ROOT = {__anonymous__: true};
 var GLOBAL = null;
 // remove this block to hide implementation
 try {
-  GLOBAL = (false || eval)("this") || (function () { return this; }());
+  var that = function () { return this; };
+  GLOBAL = (false || eval)("this") || that();
 } catch (e) {}
 
 // direct reference, is referred everywhere
@@ -63,7 +64,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.1.0-r2";
+var qversion = "3.1.0-r3";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
