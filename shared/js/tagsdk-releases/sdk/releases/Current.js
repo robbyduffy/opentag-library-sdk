@@ -50,10 +50,15 @@ var PKG_ROOT = {__anonymous__: true};
 var GLOBAL = null;
 // remove this block to hide implementation
 try {
-  var that = function () { return this; };
-  GLOBAL = (false || eval)("this") || that();
+  GLOBAL = (false || eval)("this");
 } catch (e) {}
 
+if (!GLOBAL) {
+  try {
+    var that = function () { return this; };
+    GLOBAL = that();
+  } catch (ex) {}
+}
 // direct reference, is referred everywhere
 // GLOBAL will ALWAYS refer to shared global scope, either in node or browser
 // however, entire classpath can be hidden, if necessary
