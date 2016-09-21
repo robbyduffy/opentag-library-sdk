@@ -9585,7 +9585,7 @@ q.html.PostData = function (url, data, type, contentType) {
     }
   };
   
-  function preparecontainerMsg(container, config) {
+  function prepareContainerMsg(container, config) {
     var msgObject = {};
     
     msgObject.clientId = "" + config.clientId;
@@ -9624,8 +9624,9 @@ q.html.PostData = function (url, data, type, contentType) {
    */
   Ping.prototype.newSend = function (container, loadTimes) {
     var config = container.config;
-    var msgObject = preparecontainerMsg(container, config);
-    var tags = msgObject.tags;
+    var msgObject = prepareContainerMsg(container, config);
+    var tagLogs = msgObject.tags;
+    var pingURL = Ping.pingServerUrl || config.pingServerUrl;
     
     for (var i = 0; i < loadTimes.length; i++) {
       var tag = loadTimes[i].tag;
@@ -9639,14 +9640,12 @@ q.html.PostData = function (url, data, type, contentType) {
       var tagMsg = {};
       var tagID = Ping.getPingID(tag);
       
-      var pingURL = Ping.pingServerUrl || config.pingServerUrl;
-      
       if (!tag.pingSent && tagID && loadTime !== null) {
         if (tagID !== undefined) {
           tagMsg.tagId = tagID;
           tagMsg.loadTime = loadTime;
           tagMsg.fired = true;
-          tags.push(tagMsg);
+          tagLogs.push(tagMsg);
           tag.pingSent = true;
         } else {
           log.WARN("send: tag `" + tag.config.name +/*L*/
@@ -9662,13 +9661,13 @@ q.html.PostData = function (url, data, type, contentType) {
     }
         
     // sending part
-    if (pingURL && (tags.length > 0 || msgObject.containerLoad)) {
+    if (pingURL && (tagLogs.length > 0 || msgObject.containerLoad)) {
       var pingString = JSON.stringify(msgObject);
       var url = "//" + pingURL;
       log.FINE("send: sending pings " + url);/*L*/
       q.html.PostData(url, pingString, "POST", appJsonCT);
     } else {
-      if (!tags.length) {
+      if (!tagLogs.length) {
         log.FINE("send: no pings to sent");/*L*/
       }
       if (!pingURL) {
@@ -9692,8 +9691,9 @@ q.html.PostData = function (url, data, type, contentType) {
    */
   Ping.prototype.newSendDedupe = function (container, tags) {
     var config = container.config;
-    var msgObject = preparecontainerMsg(container, config);
-    var tags = msgObject.tags;
+    var msgObject = prepareContainerMsg(container, config);
+    var pingURL = Ping.pingServerUrl || config.pingServerUrl;
+    var tagLogs = msgObject.tags;
 
     for (var i = 0; i < tags.length; i++) {
       var tag = tags[i];
@@ -9708,19 +9708,18 @@ q.html.PostData = function (url, data, type, contentType) {
         tagMsg.tagId = "" + tagId;
         tagMsg.fired = false;
         tagMsg.loadTime = 0;
-        msgObject.push(tagMsg);
+        tagLogs.push(tagMsg);
         tag.dedupePingSent = true;
       }
     }
-    var pingURL = Ping.pingServerUrl || config.pingServerUrl;
     
-    if (pingURL && (tags.length > 0 || msgObject.containerLoad)) {
+    if (pingURL && (tagLogs.length > 0 || msgObject.containerLoad)) {
       var pingString = JSON.stringify(msgObject);
       var url = "//" + pingURL;
       log.FINE("send: sending pings " + url);/*L*/
       q.html.PostData(url, pingString, "POST", appJsonCT);
     } else {
-      if (!tags.length) {
+      if (!tagLogs.length) {
         log.FINE("sendDedupe: no dedupe pings to sent");/*L*/
       }
       if (!pingURL) {
