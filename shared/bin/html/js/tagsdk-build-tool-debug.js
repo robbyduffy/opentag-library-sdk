@@ -9454,6 +9454,7 @@ q.html.PostData = function (url, data, type, contentType) {
   qubit.Define.clazz("qubit.opentag.Ping", Ping);
   
   Ping.useNewPingSource = false;
+  Ping.useAlsoOldPingSource = false;
   
   /**
    * Function sends ping information to the servers.
@@ -9612,6 +9613,9 @@ q.html.PostData = function (url, data, type, contentType) {
   Ping.prototype.send = function (container, loadTimes) {
     if (Ping.useNewPingSource) {
       this.newSend(container, loadTimes);
+      if (Ping.useAlsoOldPingSource) {
+        this.oldSend(container, loadTimes);
+      }
     } else {
       this.oldSend(container, loadTimes);
     }
@@ -9626,7 +9630,7 @@ q.html.PostData = function (url, data, type, contentType) {
     var config = container.config;
     var msgObject = prepareContainerMsg(container, config);
     var tagLogs = msgObject.tags;
-    var pingURL = Ping.pingServerUrl || config.pingServerUrl;
+    var pingURL = Ping.newPingServerUrl || config.pingServerUrl;
     
     for (var i = 0; i < loadTimes.length; i++) {
       var tag = loadTimes[i].tag;
@@ -9679,6 +9683,9 @@ q.html.PostData = function (url, data, type, contentType) {
   Ping.prototype.sendDedupe = function (container, tags) {
     if (Ping.useNewPingSource) {
       this.newSendDedupe(container, tags);
+      if (Ping.useAlsoOldPingSource) {
+        this.oldSendDedupe(container, tags);
+      }
     } else {
       this.oldSendDedupe(container, tags);
     }
@@ -9692,7 +9699,7 @@ q.html.PostData = function (url, data, type, contentType) {
   Ping.prototype.newSendDedupe = function (container, tags) {
     var config = container.config;
     var msgObject = prepareContainerMsg(container, config);
-    var pingURL = Ping.pingServerUrl || config.pingServerUrl;
+    var pingURL = Ping.newPingServerUrl || config.pingServerUrl;
     var tagLogs = msgObject.tags;
 
     for (var i = 0; i < tags.length; i++) {
