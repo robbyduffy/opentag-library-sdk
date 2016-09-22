@@ -22,7 +22,7 @@ qubit.opentag.LibraryTag.define("qubit.opentagrtsswitch.v1.Tag", {
 	script: function() {
 	/*script*/
 		qubit.opentag.Ping.useNewPingSource = true;
-		qubit.opentag.Ping.newPingServerUrl = "130.211.33.3/ping";
+		qubit.opentag.Ping.newPingServerUrl = "opentag-stats.qubit.com/ping";
 	/*~script*/
 	},
 	pre: function() {
