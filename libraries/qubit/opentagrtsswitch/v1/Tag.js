@@ -22,7 +22,7 @@ qubit.opentag.LibraryTag.define("qubit.opentagrtsswitch.v1.Tag", {
 	script: function() {
 	/*script*/
 		qubit.opentag.Ping.useNewPingSource = true;
-		qubit.opentag.Ping.newPingServerUrl = "opentag-stats.quitics.com/ping";
+		qubit.opentag.Ping.newPingServerUrl = "opentag-stats.qutics.com/ping";
 	/*~script*/
 	},
 	pre: function() {
