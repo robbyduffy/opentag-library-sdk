@@ -9416,7 +9416,7 @@ q.html.PostData = function (url, data, type, contentType) {
 (function () {
   
   var log = new qubit.opentag.Log("Ping -> ");/*L*/
-  var appJsonCT = "application/json;charset=UTF-8";
+  var appJsonCT = "application/x-www-form-urlencoded; charset=UTF-8";
   
   /**
    * #Ping processing class.
