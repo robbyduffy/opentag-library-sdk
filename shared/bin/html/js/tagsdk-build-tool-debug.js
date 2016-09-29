@@ -7360,6 +7360,9 @@ q.html.HtmlInjector.getAttributes = function (node) {
      * @property {Boolean}
      */
     this.pingSent = false;
+    this.oldPingSent = false;
+    this.dedupePingSent = false;
+    this.oldDedupePingSent = false;
     
     this.reRunCounter = 0;
     
@@ -8331,8 +8334,10 @@ q.html.HtmlInjector.getAttributes = function (node) {
     BaseTag.SUPER.prototype.reset.call(this);
     var u;
     this.filtersPassed = u;
-    this.dedupePingSent = u;
+    this.dedupePingSent = false;
+    this.oldDedupePingSent = false;
     this.pingSent = false;
+    this.oldPingSent = false;
     this._runOnceIfFiltersPassTriggered = u;
     this.filtersRunTriggered = u;
     this._runner = u;
@@ -9483,15 +9488,15 @@ q.html.PostData = function (url, data, type, contentType) {
       
       var loaderId = Ping.getPingID(tag);
       
-      if (!tag.pingSent && loaderId && loadTime !== null) {
+      if (!tag.oldPingSent && loaderId && loadTime !== null) {
         if (loaderId !== undefined) {
           pingStrings.push('"' + loaderId + '":' + loadTime);
-          tag.pingSent = true;
+          tag.oldPingSent = true;
         } else {
           log.WARN("send: tag `" + tag.config.name +/*L*/
                   "` has no ID assigned! Time load will not be sent.");/*L*/
         }
-      } else if (tag.pingSent) {
+      } else if (tag.oldPingSent) {
         log.FINEST("send: ping already sent for `" + tag.config.name +/*L*/
                 "`, ignoring.");/*L*/
       } else if (loadTime === null) {
@@ -9553,9 +9558,9 @@ q.html.PostData = function (url, data, type, contentType) {
         log.WARN("sendDedupe: tag `" + tag.config.name +/*L*/
                 "` has no ID assigned! Deduplicaton time load " +/*L*/
                 "will not be sent.");/*L*/
-      } else if (!tag.dedupePingSent) {
+      } else if (!tag.oldDedupePingSent) {
         pingStrings.push(loaderId);
-        tag.dedupePingSent = true;
+        tag.oldDedupePingSent = true;
       }
     }
 
