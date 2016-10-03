@@ -27,11 +27,12 @@ qubit.opentag.LibraryTag.define("microsoft.universaleventracking.v1.Tag", {
     },
     script: function() {
       /*script*/
+      var _this = this;
       (function(w, d, t, r, u) {
         var f, n, i;
         w[u] = w[u] || [], f = function() {
           var o = {
-            ti: this.valueForToken("tagID") + ""
+            ti: _this.valueForToken("tagID") + ""
           };
           o.q = w[u], w[u] = new UET(o), w[u].push("pageLoad")
         }, n = d.createElement(t), n.src = r, n.async = 1, n.onload = n.onreadystatechange = function() {
