@@ -94,7 +94,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.1.1";
+var qversion = "3.1.1-r1";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -9458,9 +9458,6 @@ q.html.PostData = function (url, data, type, contentType) {
 
   qubit.Define.clazz("qubit.opentag.Ping", Ping);
   
-  Ping.useNewPingSource = false;
-  Ping.useAlsoOldPingSource = false;
-  
   /**
    * Function sends ping information to the servers.
    * @param {Object} container Container reference
@@ -9616,11 +9613,9 @@ q.html.PostData = function (url, data, type, contentType) {
   }
 
   Ping.prototype.send = function (container, loadTimes) {
-    if (Ping.useNewPingSource) {
+    var pingURL = container.config.pingServerUrl;
+    if (pingURL && pingURL.indexOf("opentag-stats.qutics.com") !== -1) {
       this.newSend(container, loadTimes);
-      if (Ping.useAlsoOldPingSource) {
-        this.oldSend(container, loadTimes);
-      }
     } else {
       this.oldSend(container, loadTimes);
     }
@@ -9635,7 +9630,7 @@ q.html.PostData = function (url, data, type, contentType) {
     var config = container.config;
     var msgObject = prepareContainerMsg(container, config);
     var tagLogs = msgObject.tags;
-    var pingURL = Ping.newPingServerUrl || config.pingServerUrl;
+    var pingURL = config.pingServerUrl;
     
     for (var i = 0; i < loadTimes.length; i++) {
       var tag = loadTimes[i].tag;
@@ -9686,11 +9681,10 @@ q.html.PostData = function (url, data, type, contentType) {
   };
 
   Ping.prototype.sendDedupe = function (container, tags) {
-    if (Ping.useNewPingSource) {
+    var pingURL = container.config.pingServerUrl;
+    if (pingURL && pingURL.indexOf("opentag-stats.qutics.com") !== -1) {
+      // temporal switch
       this.newSendDedupe(container, tags);
-      if (Ping.useAlsoOldPingSource) {
-        this.oldSendDedupe(container, tags);
-      }
     } else {
       this.oldSendDedupe(container, tags);
     }
@@ -9704,7 +9698,7 @@ q.html.PostData = function (url, data, type, contentType) {
   Ping.prototype.newSendDedupe = function (container, tags) {
     var config = container.config;
     var msgObject = prepareContainerMsg(container, config);
-    var pingURL = Ping.newPingServerUrl || config.pingServerUrl;
+    var pingURL = config.pingServerUrl;
     var tagLogs = msgObject.tags;
 
     for (var i = 0; i < tags.length; i++) {
