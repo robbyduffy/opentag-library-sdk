@@ -9614,7 +9614,7 @@ q.html.PostData = function (url, data, type, contentType) {
 
   Ping.prototype.send = function (container, loadTimes) {
     var pingURL = container.config.pingServerUrl;
-    if (pingURL && pingURL.indexOf("opentag-stats.qutics.com") !== -1) {
+    if (pingURL && pingURL.indexOf("opentag-stats") !== -1) {
       this.newSend(container, loadTimes);
     } else {
       this.oldSend(container, loadTimes);
