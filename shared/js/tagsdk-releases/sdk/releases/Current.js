@@ -9403,7 +9403,7 @@ q.html.PostData = function (url, data, type, contentType) {
       } catch (e) {
       }
     }
-    retry();
+//    retry();
   };
   if (isOldIe) {
     q.html.fileLoader.load(fullUrl);
@@ -9657,7 +9657,7 @@ q.html.PostData = function (url, data, type, contentType) {
 
   Ping.prototype.sendDedupe = function (container, tags) {
     var pingURL = container.config.pingServerUrl;
-    if (pingURL && pingURL.indexOf("opentag-stats.qutics.com") !== -1) {
+    if (pingURL && pingURL.indexOf("opentag-stats") !== -1) {
       // temporal switch
       this.newSendDedupe(container, tags);
     } else {
