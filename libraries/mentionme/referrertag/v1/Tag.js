@@ -162,7 +162,7 @@ qubit.opentag.LibraryTag.define("mentionme.referrertag.v1.Tag", {
 
 		for (var param in paramObj) {
 			var value = paramObj[param];
-			paramArr.push(param + "=" + escape(value));
+			paramArr.push(param + "=" + encodeURIComponent(value));
 		}
 
 		var mmScript = document.createElement("script");
