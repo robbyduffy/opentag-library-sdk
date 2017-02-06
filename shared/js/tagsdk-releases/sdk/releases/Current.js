@@ -69,7 +69,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.1.1-r1";
+var qversion = "3.1.1-r2";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -9434,66 +9434,6 @@ q.html.PostData = function (url, data, type, contentType) {
   qubit.Define.clazz("qubit.opentag.Ping", Ping);
   
   /**
-   * Function sends ping information to the servers.
-   * @param {Object} container Container reference
-   * @param loadTimes {Array} Array of load time elements [time, BaseTag]
-   */
-  Ping.prototype.oldSend = function (container, loadTimes) {
-    var config = container.config;
-    var pingString = 
-            "c=" + config.clientId + "&" +
-            "p=" + container.getContainerId() + "&" +
-            "l=" + config.tellLoadTimesProbability + "&" +
-            "pv=" + q.cookie.PageView.update() + "&" +
-            "d=";
-            
-    var pingStrings = [];
-    
-    for (var i = 0; i < loadTimes.length; i++) {
-      var tag = loadTimes[i].tag;
-      var loadTime = loadTimes[i].loadTime;
-      
-      if (loadTime === null || isNaN(loadTime)) {
-        // ignore unset load time entries.
-        continue;
-      }
-      
-      var loaderId = Ping.getPingID(tag);
-      
-      if (!tag.oldPingSent && loaderId && loadTime !== null) {
-        if (loaderId !== undefined) {
-          pingStrings.push('"' + loaderId + '":' + loadTime);
-          tag.oldPingSent = true;
-        } else {
-          log.WARN("send: tag `" + tag.config.name +/*L*/
-                  "` has no ID assigned! Time load will not be sent.");/*L*/
-        }
-      } else if (tag.oldPingSent) {
-        log.FINEST("send: ping already sent for `" + tag.config.name +/*L*/
-                "`, ignoring.");/*L*/
-      } else if (loadTime === null) {
-        log.FINEST("send: null load times for `" +/*L*/
-                tag.config.name + "`, ignoring (ping not sent).");/*L*/
-      }
-    }
-        
-    // sending part
-    if (config.pingServerUrl && pingStrings.length > 0) {
-      pingString += encodeURIComponent("{" + pingStrings.join(',') + "}");
-      var url = "//" + config.pingServerUrl + "/tag2?" + pingString;
-      log.FINE("send: sending pings " + url);/*L*/
-      q.html.PostData(url, null, "GET");
-    } else {
-      if (!pingStrings.length) {
-        log.FINE("send: no pings to sent");/*L*/
-      }
-      if (!config.pingServerUrl) {
-        log.WARN("send: config.pingServerUrl is unset!");/*L*/
-      }
-    }
-  };
-  
-  /**
    * Disabled. Function sends error information to servers.
    * @private
    * @param {Object} container
@@ -9506,49 +9446,6 @@ q.html.PostData = function (url, data, type, contentType) {
   };
 
   /*session*/
-
-  /**
-   * Function send deduplicated information ping to servers.
-   * @param {Object} container
-   * @param {Object} tags
-   */
-  Ping.prototype.oldSendDedupe = function (container, tags) {
-    var config = container.config;
-    var pingString = "c=" + config.clientId + "&" +
-      "p=" + container.getContainerId() + "&" +
-      "l=" + (config.tellLoadTimesProbability) + "&" +
-      "pv=" + q.cookie.PageView.update() + "&" +
-      "dd=";
-
-    var pingStrings = [];
-
-    for (var i = 0; i < tags.length; i++) {
-      var tag = tags[i];
-      var loaderId = Ping.getPingID(tag);
-
-      if (loaderId === undefined) {
-        log.WARN("sendDedupe: tag `" + tag.config.name +/*L*/
-                "` has no ID assigned! Deduplicaton time load " +/*L*/
-                "will not be sent.");/*L*/
-      } else if (!tag.oldDedupePingSent) {
-        pingStrings.push(loaderId);
-        tag.oldDedupePingSent = true;
-      }
-    }
-
-    if (pingStrings.length > 0 && config.pingServerUrl) {
-      pingString += encodeURIComponent("[" + pingStrings.join(',') + "]");
-      q.html.PostData("//" + config.pingServerUrl + 
-        "/tag2?" + pingString, null, "GET");
-    } else {
-      if (!pingStrings.length) {
-        log.FINE("sendDedupe: no dedupe pings to sent");/*L*/
-      }
-      if (!config.pingServerUrl) {
-        log.WARN("sendDedupe: config.pingServerUrl is unset!");/*L*/
-      }
-    }
-  };
   
   Ping.getPingID = function (tag) {
     if (tag.config.id) {
@@ -9587,21 +9484,12 @@ q.html.PostData = function (url, data, type, contentType) {
     return msgObject;
   }
 
-  Ping.prototype.send = function (container, loadTimes) {
-    var pingURL = container.config.pingServerUrl;
-    if (pingURL && pingURL.indexOf("opentag-stats") !== -1) {
-      this.newSend(container, loadTimes);
-    } else {
-      this.oldSend(container, loadTimes);
-    }
-  };
-
   /**
    * Function sends ping information to the servers.
    * @param {Object} container Container reference
    * @param loadTimes {Array} Array of load time elements [time, BaseTag]
    */
-  Ping.prototype.newSend = function (container, loadTimes) {
+  Ping.prototype.send = function (container, loadTimes) {
     var config = container.config;
     var msgObject = prepareContainerMsg(container, config);
     var tagLogs = msgObject.tags;
@@ -9654,23 +9542,13 @@ q.html.PostData = function (url, data, type, contentType) {
       }
     }
   };
-
-  Ping.prototype.sendDedupe = function (container, tags) {
-    var pingURL = container.config.pingServerUrl;
-    if (pingURL && pingURL.indexOf("opentag-stats") !== -1) {
-      // temporal switch
-      this.newSendDedupe(container, tags);
-    } else {
-      this.oldSendDedupe(container, tags);
-    }
-  };
   
   /**
    * Function send deduplicated information ping to servers.
    * @param {Object} container
    * @param {Object} tags
    */
-  Ping.prototype.newSendDedupe = function (container, tags) {
+  Ping.prototype.sendDedupe = function (container, tags) {
     var config = container.config;
     var msgObject = prepareContainerMsg(container, config);
     var pingURL = config.pingServerUrl;
@@ -9708,7 +9586,6 @@ q.html.PostData = function (url, data, type, contentType) {
       }
     }
   };
-  
   
   /*~session*/
 }());
@@ -12847,7 +12724,6 @@ var JSON = {};
 //      locked: locked, (to be NOT sent)
 //      other: other filterReady, (to be set with callback)
       var results = this.getAllTagsByState();
-      var _this = this;
       var loadTimes = [];
       
       if (results.run) {
@@ -12903,6 +12779,8 @@ var JSON = {};
         }
       }
       /*~session*/
+    } else {
+      this.ping.send(this, []);
     }
   };
   /*~no-send*/
