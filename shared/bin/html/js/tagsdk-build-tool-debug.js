@@ -94,7 +94,7 @@ if (!PKG_ROOT.qubit) {
   PKG_ROOT.qubit = qubit;
 }
 
-var qversion = "3.1.2";
+var qversion = "3.1.3";
 
 if (qubit.VERSION && qubit.VERSION !== qversion) {
   try {
@@ -8622,6 +8622,9 @@ qubit.Define.namespace("qubit.qprotocol.PubSub", PubSub);
 
 
 
+
+/* global GLOBAL, EMPTY_FUN */
+
 /*
  * TagSDK, a tag development platform
  * Copyright 2013-2016, Qubit Group
@@ -8807,6 +8810,36 @@ qubit.Define.namespace("qubit.qprotocol.PubSub", PubSub);
      * @property {qubit.opentag.Session}
      */
     this.session = null;
+    
+    /**
+     * @readonly
+     * Array of containers owning this tag. Its very unusual for this 
+     * array to be larger than 1. Normally tag is registered with one container 
+     * only. This array is managed by container instance and should never been 
+     * changed directly. To unregister tag from container - use container api.
+     * @property Array of {qubit.opentag.Container}
+     */
+    this.owningContainers = [];
+    
+//    var ruid;
+//    
+//    /**
+//     * Function returns unique runtime unique ID for this tag - each time tag 
+//     * instance is created it will return different ID.
+//     * @returns String unique string ID for this tag instance
+//     */
+//    this.getRUID = function () {
+//      if (ruid) {
+//        return ruid;
+//      }
+//      
+//      if (isNaN(GLOBAL.___qubit_ot_ruid_t_cntr__)) {
+//        GLOBAL.___qubit_ot_ruid_t_cntr__ = 1;
+//      }
+//      
+//      return ruid = ((this.config.name + GLOBAL.___qubit_ot_ruid_t_cntr__++) +
+//        new Date().valueOf()) + Math.random();
+//    };
     
     /**
      * Idicates if tag stats has been submitted.
@@ -9452,6 +9485,7 @@ qubit.Define.namespace("qubit.qprotocol.PubSub", PubSub);
    * Function adding variables map with namespace provided - worker function.
    * 
    * @param {type} map
+   * @param {type} ns
    * @returns {undefined}
    */
   BaseTag.prototype._addVariablesMap = function (map, ns) {
@@ -12979,16 +13013,17 @@ q.cookie.SimpleSessionCounter.update = function (domain) {
   Container.prototype.destroy = function (withTags) {
     this.destroyed = true;
     this.unregister();
-    if (withTags) {
-      for (var i = 0; i < this.tags.length; i++) {
-        var tag = this.tags[i];
-        if (tag instanceof BaseTag) {
-          tag.destroy();
-          this.tags.splice(i, 1);
-          i--;
-        }
+    
+    for (var i = 0; i < this.tags.length; i++) {
+      var tag = this.tags[i];
+      tag.owningContainers = []; // unregister container from tag
+      if (withTags && tag instanceof BaseTag) {
+        tag.destroy();
       }
     }
+    
+    this.tags = []; // unregister all tags from container
+
     var name = this.PACKAGE_NAME.split(".");
     name = name[name.length - 1];
     
@@ -13057,12 +13092,12 @@ q.cookie.SimpleSessionCounter.update = function (domain) {
     if (withTags) {
       for (var i = 0; i < this.tags.length; i++) {
         var tag = this.tags[i];
+        tag.owningContainers = []; // unregister container from tag
         if (tag instanceof BaseTag) {
           tag.unregister();
-          this.tags.splice(i, 1);
-          i--;
         }
       }
+      this.tags = [];
     }
     
     if (!index || index.length === 0) {
@@ -13123,11 +13158,22 @@ q.cookie.SimpleSessionCounter.update = function (domain) {
    * @param {qubit.opentag.BaseTag} tag
    */
   Container.prototype.registerTag = function (tag) {
-    if (Utils.existsInArray(this.tags, tag)) {
+    var exists = false;
+    var oc = tag.owningContainers;
+    
+    for (var i = 0; i < oc.length; i++) {
+      if (oc[i] === this) {
+        exists = true;
+        break;
+      }
+    }
+    
+    if (exists) {
       this.log.FINE(/*L*/
         "Tag `" + tag.config.name + "` is already registered!");/*L*/
     } else {
       this.tags.push(tag);
+      oc.push(this);
       tag.onAfter(this._tagLoadedHandler);
       try {
         this.onTagRegistered(tag);
@@ -13136,6 +13182,33 @@ q.cookie.SimpleSessionCounter.update = function (domain) {
       }
     }
   };
+  
+  /**
+   * Function used to unregister tag from container.
+   * @param {type} tag
+   * @returns {undefined}
+   */
+  Container.prototype.unregisterTag = function (tag) {
+    var oc = tag.owningContainers;
+    var i;
+    
+    for (i = 0; i < oc.length;) {
+      if (oc[i] === this) {
+        oc.splice(i, 1);
+      } else {
+        i++;
+      }
+    }
+    
+    for (i = 0; i < this.tags.length;) {
+      if (this.tags[i] === tag) {
+        this.tags.splice(i, 1);
+      } else {
+        i++;
+      }
+    }
+  };
+  
   /**
    * Function registering tag instance.
    * It does same job like `registerTag` but the input is an array.
@@ -13323,22 +13396,7 @@ q.cookie.SimpleSessionCounter.update = function (domain) {
         var tag = orderedTags[z];
         // ignore tag state or check if clean and unstarted
         if (this.includedToRun(tag)) {
-          // if dependencies are defined, and they are in the container, 
-          // try to run them rather now instead of later! (reordering)
-          var deps = tag.resolveDependencies();
-          if (deps.length > 0) {
-            for (var i = 0; i < deps.length; i++) {
-              var dependency = deps[i];
-              if (!dependency[runtimeMark]) {
-                dependency[runtimeMark] = true;
-                this._tagRunner(dependency, command, forceAsync);
-              }
-            }
-          }
-          if (!tag[runtimeMark]) {
-            tag[runtimeMark] = true;
-            this._tagRunner(tag, command, forceAsync);
-          }
+          this._checkAndRun(tag, command, forceAsync, runtimeMark);
         }
       } catch (ex) {
         this.log.ERROR("Error while preparing tag '" + tag.CLASSPATH +/*L*/
@@ -13391,6 +13449,27 @@ q.cookie.SimpleSessionCounter.update = function (domain) {
       }
     }
     return tagsOrdered;
+  };
+  
+  // add circural tests!
+  Container.prototype._checkAndRun = function (tag,
+                                              command,
+                                              forceAsync,
+                                              runtimeMark) {
+    if (!tag[runtimeMark]) {
+      tag[runtimeMark] = true;
+    } else {
+      return;
+    }
+    
+    var deps = tag.resolveDependencies();
+    if (deps.length > 0) {
+      for (var i = 0; i < deps.length; i++) {
+        this._checkAndRun(deps[i], command, forceAsync, runtimeMark);
+      }
+    }
+    
+    this._tagRunner(tag, command, forceAsync);
   };
   
   /**
