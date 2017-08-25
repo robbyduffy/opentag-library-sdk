@@ -26,7 +26,7 @@ qubit.opentag.LibraryTag.define("mediaiq.aiqcapturetag.Tag", {
 			uv: ""
 		}],
 		categories:[
-			"DMP"
+			"DSP"
 		]
 
 		/*~config*/
