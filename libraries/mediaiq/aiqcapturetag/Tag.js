@@ -1,6 +1,6 @@
 //:import CurrentSDK
 
-qubit.opentag.LibraryTag.define("mediaiq.v1.Tag", {
+qubit.opentag.LibraryTag.define("mediaiq.aiqcapturetag.Tag", {
 	getDefaultConfig: function () {
       return {
 		/*config*/
