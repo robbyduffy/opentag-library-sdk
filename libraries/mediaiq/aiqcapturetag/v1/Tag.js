@@ -150,7 +150,7 @@ qubit.opentag.LibraryTag.define("mediaiq.aiqcapturetag.v1.Tag", {
 			uv: ""
 		}],
 		categories:[
-			"DSP"
+			"Advertising Network"
 		]
 
 		/*~config*/
